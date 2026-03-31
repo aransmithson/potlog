@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>GrowGuide - Cannabis Grow Tracker</title>
+<title>Pot Log - Cannabis Grow Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -20,6 +20,7 @@
   --accent-glow: rgba(52, 211, 153, 0.15);
   --accent-dark: #065f46;
   --mint: #a7f3d0;
+  --gold: #f5c842;
   --text: #ecfdf5;
   --text2: #a7f3d0;
   --text3: #6b9080;
@@ -49,12 +50,82 @@ body {
 button { cursor:pointer; font-family:inherit; }
 input, textarea, select { font-family:inherit; }
 
+/* ===== AUTH SCREEN ===== */
+.auth-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: radial-gradient(ellipse at top, rgba(52,211,153,0.06) 0%, transparent 60%);
+}
+.auth-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+}
+.auth-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.auth-logo img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  border-radius: 18px;
+}
+.auth-logo h1 {
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), #fde68a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 10px;
+  letter-spacing: -0.5px;
+}
+.auth-logo p { font-size: 13px; color: var(--text3); margin-top: 4px; }
+.auth-tabs {
+  display: flex;
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 24px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 9px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.auth-tab.active { background: var(--bg4); color: var(--accent); }
+.auth-error {
+  background: var(--danger-bg);
+  border: 1px solid rgba(251, 113, 133, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: none;
+}
+
 /* ===== HEADER ===== */
 .header {
   background: rgba(12, 18, 16, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  padding: 14px 20px;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -67,21 +138,19 @@ input, textarea, select { font-family:inherit; }
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
 }
-.header-logo .logo-icon {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
+.header-logo img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 .header-logo h1 {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--accent), var(--mint));
+  background: linear-gradient(135deg, var(--gold), #fde68a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -94,10 +163,68 @@ input, textarea, select { font-family:inherit; }
   font-size: 13px;
   color: var(--text3);
   font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0 12px;
 }
-.nav-breadcrumb span { cursor: pointer; transition: color var(--transition); }
+.nav-breadcrumb span { cursor: pointer; transition: color var(--transition); white-space: nowrap; }
 .nav-breadcrumb span:hover { color: var(--accent); }
 .nav-breadcrumb .sep { color: var(--text4); cursor: default; font-size: 11px; }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  flex-shrink: 0;
+}
+.user-avatar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.user-avatar-btn:hover { border-color: var(--accent); background: var(--bg4); }
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 190px;
+  z-index: 200;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: none;
+}
+.user-dropdown.open { display: block; }
+.user-dropdown-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.user-dropdown-header .dname { font-size: 14px; font-weight: 700; }
+.user-dropdown-header .uname { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.user-dropdown-item {
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background var(--transition);
+  color: var(--text2);
+}
+.user-dropdown-item:hover { background: var(--bg3); }
+.user-dropdown-item.danger { color: var(--danger); }
 
 /* ===== CONTAINER ===== */
 .container {
@@ -120,20 +247,12 @@ input, textarea, select { font-family:inherit; }
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 .card.interactive { cursor: pointer; }
-.card.interactive:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow);
-  border-color: var(--border-bright);
-}
+.card.interactive:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--border-bright); }
 .card.interactive:active { transform: scale(0.985); }
-.card-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-@media (min-width: 640px) {
-  .card-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-}
+.card-cover { margin: -18px -18px 14px; overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; max-height: 160px; }
+.card-cover img { width: 100%; height: 160px; object-fit: cover; display: block; }
+.card-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 640px) { .card-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); } }
 
 /* ===== BUTTONS ===== */
 .btn {
@@ -149,110 +268,90 @@ input, textarea, select { font-family:inherit; }
   gap: 6px;
   white-space: nowrap;
 }
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent-dim), var(--accent));
-  color: #0c1210;
-  box-shadow: 0 4px 16px rgba(52, 211, 153, 0.25);
-}
-.btn-primary:hover { box-shadow: 0 6px 24px rgba(52, 211, 153, 0.35); transform: translateY(-1px); }
+.btn-primary { background: linear-gradient(135deg, var(--accent-dim), var(--accent)); color: #0c1210; box-shadow: 0 4px 16px rgba(52,211,153,0.25); }
+.btn-primary:hover { box-shadow: 0 6px 24px rgba(52,211,153,0.35); transform: translateY(-1px); }
 .btn-primary:active { transform: scale(0.97); }
-.btn-secondary {
-  background: var(--bg3);
-  color: var(--text2);
-  border: 1px solid var(--border);
-}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
 .btn-secondary:hover { background: var(--bg4); border-color: var(--border-bright); }
-.btn-danger {
-  background: var(--danger-bg);
-  color: var(--danger);
-  border: 1px solid rgba(251, 113, 133, 0.2);
-}
-.btn-danger:hover { background: rgba(251, 113, 133, 0.2); }
+.btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(251,113,133,0.2); }
+.btn-danger:hover { background: rgba(251,113,133,0.2); }
 .btn-sm { padding: 8px 16px; font-size: 13px; border-radius: 8px; }
 .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-full { width: 100%; }
+.section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-head h2 { font-size: 20px; font-weight: 800; }
+
+/* ===== BADGE ===== */
+.badge { padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+.badge-active { background: var(--accent-glow); color: var(--accent); }
+.badge-done { background: var(--bg3); color: var(--text3); }
 
 /* ===== FORMS ===== */
 .form-group { margin-bottom: 16px; }
 .form-group label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text3);
-  margin-bottom: 7px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
+  display: block; font-size: 12px; font-weight: 600; color: var(--text3);
+  margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.8px;
 }
-.form-group input,
-.form-group textarea,
-.form-group select {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 15px;
-  outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%; padding: 12px 16px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  font-size: 15px; outline: none; transition: border-color var(--transition), box-shadow var(--transition);
 }
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
 }
+.form-group input:disabled { opacity: 0.45; cursor: not-allowed; }
 .form-group textarea { resize: vertical; min-height: 80px; }
-.form-group select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b9080' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b9080' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
 }
+.form-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 480px) { .form-row { grid-template-columns: 1fr 1fr; } }
+
+/* ===== PROFILE / SETTINGS ===== */
+.page-header { margin-bottom: 22px; display: flex; align-items: center; gap: 12px; }
+.page-header h2 { font-size: 22px; font-weight: 800; }
+.page-back { background: none; border: none; color: var(--text3); font-size: 18px; padding: 4px; cursor: pointer; transition: color var(--transition); }
+.page-back:hover { color: var(--accent); }
+
+.profile-hero { text-align: center; padding: 8px 0 20px; }
+.profile-emoji { font-size: 60px; line-height: 1; margin-bottom: 8px; }
+.profile-name { font-size: 20px; font-weight: 800; }
+.profile-username { font-size: 13px; color: var(--text3); margin-top: 3px; }
+
+.avatar-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.avatar-opt {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--bg3); border: 2px solid transparent;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; cursor: pointer; transition: all var(--transition);
+}
+.avatar-opt:hover { border-color: var(--border-bright); }
+.avatar-opt.sel { border-color: var(--accent); background: var(--accent-glow); }
+
+.danger-card { border-color: rgba(251,113,133,0.25) !important; }
+.section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.section-title.danger { color: var(--danger); }
 
 /* ===== STAGE TRACKER ===== */
 .stage-tracker {
-  display: flex;
-  gap: 6px;
-  margin: 16px 0;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
+  display: flex; gap: 6px; margin: 16px 0; overflow-x: auto;
+  padding-bottom: 4px; scrollbar-width: none;
 }
 .stage-tracker::-webkit-scrollbar { display: none; }
 .stage-pill {
-  padding: 8px 14px;
-  border-radius: 50px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1.5px solid transparent;
-  transition: all var(--transition);
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
+  padding: 8px 14px; border-radius: 50px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: 1.5px solid transparent; transition: all var(--transition);
+  white-space: nowrap; display: flex; align-items: center; gap: 5px; flex-shrink: 0;
 }
-.stage-pill.active {
-  background: linear-gradient(135deg, var(--accent-dark), rgba(16, 185, 129, 0.3));
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 16px var(--accent-glow);
-}
-.stage-pill.completed-stage {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--accent-dim);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-.stage-pill.upcoming {
-  background: var(--bg3);
-  color: var(--text4);
-}
+.stage-pill.active { background: linear-gradient(135deg, var(--accent-dark), rgba(16,185,129,0.3)); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 16px var(--accent-glow); }
+.stage-pill.completed-stage { background: rgba(16,185,129,0.15); color: var(--accent-dim); border-color: rgba(16,185,129,0.3); }
+.stage-pill.upcoming { background: var(--bg3); color: var(--text4); }
 .stage-pill.upcoming:hover { color: var(--text3); border-color: var(--border); }
 
-/* Mini stage dots */
 .stage-dots { display: flex; gap: 4px; align-items: center; }
 .stage-dot { width: 8px; height: 8px; border-radius: 50%; transition: all var(--transition); }
 .stage-dot.done { background: var(--accent-dim); }
@@ -261,230 +360,58 @@ input, textarea, select { font-family:inherit; }
 
 /* ===== TIMELINE ===== */
 .timeline { position: relative; }
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 15px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--border);
-}
+.timeline::before { content: ''; position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background: var(--border); }
 @media (min-width: 640px) { .timeline::before { left: 19px; } }
-
-.tl-entry {
-  position: relative;
-  padding-left: 42px;
-  padding-bottom: 20px;
-  animation: fadeUp 0.3s ease;
-}
+.tl-entry { position: relative; padding-left: 42px; padding-bottom: 20px; animation: fadeUp 0.3s ease; }
 @media (min-width: 640px) { .tl-entry { padding-left: 50px; } }
-
 .tl-entry:last-child { padding-bottom: 0; }
-
-.tl-dot {
-  position: absolute;
-  left: 9px;
-  top: 4px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--bg3);
-  border: 2px solid var(--accent-dim);
-  z-index: 2;
-}
+.tl-dot { position: absolute; left: 9px; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg3); border: 2px solid var(--accent-dim); z-index: 2; }
 @media (min-width: 640px) { .tl-dot { left: 13px; } }
-
-.tl-entry.has-photo .tl-dot {
-  background: var(--accent-dim);
-  box-shadow: 0 0 8px var(--accent-glow);
-}
-.tl-entry.is-system .tl-dot {
-  background: var(--bg3);
-  border-color: var(--text4);
-  width: 10px;
-  height: 10px;
-  left: 11px;
-  top: 7px;
-}
+.tl-entry.has-photo .tl-dot { background: var(--accent-dim); box-shadow: 0 0 8px var(--accent-glow); }
+.tl-entry.is-system .tl-dot { background: var(--bg3); border-color: var(--text4); width: 10px; height: 10px; left: 11px; top: 7px; }
 @media (min-width: 640px) { .tl-entry.is-system .tl-dot { left: 15px; } }
-
-.tl-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  transition: border-color var(--transition);
-}
+.tl-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color var(--transition); }
 .tl-card:hover { border-color: var(--border-bright); }
-
 .tl-card-body { padding: 14px 16px; }
-
-.tl-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
+.tl-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
 .tl-time { font-size: 12px; color: var(--text3); font-weight: 500; }
-.tl-stage-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 50px;
-  background: var(--accent-glow);
-  color: var(--accent);
-  white-space: nowrap;
-}
+.tl-stage-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 50px; background: var(--accent-glow); color: var(--accent); white-space: nowrap; }
 .tl-text { font-size: 14px; line-height: 1.65; white-space: pre-wrap; color: var(--text2); }
-.tl-photo {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  display: block;
-  cursor: pointer;
-}
-.tl-photo-single {
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  overflow: hidden;
-  margin-bottom: 0;
-}
-.tl-photo-single .tl-meta { padding: 10px 14px 0; margin-bottom: 4px; }
-.tl-photo-single .tl-photo-date { padding: 4px 14px 10px; font-size: 11px; color: var(--text4); }
-
-.tl-system {
-  font-size: 13px;
-  color: var(--text4);
-  font-style: italic;
-  padding: 4px 0;
-}
-
-.tl-delete {
-  background: none;
-  border: none;
-  color: var(--text4);
-  font-size: 16px;
-  padding: 2px 6px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition), color var(--transition);
-  border-radius: 4px;
-}
-.tl-card:hover .tl-delete,
-.tl-entry:hover .tl-delete { opacity: 1; }
+.tl-photo { width: 100%; max-height: 400px; object-fit: cover; display: block; cursor: pointer; }
+.tl-delete { background: none; border: none; color: var(--text4); font-size: 16px; padding: 2px 6px; cursor: pointer; opacity: 0; transition: opacity var(--transition), color var(--transition); border-radius: 4px; }
+.tl-card:hover .tl-delete, .tl-entry:hover .tl-delete { opacity: 1; }
 .tl-delete:hover { color: var(--danger); }
 @media (hover: none) { .tl-delete { opacity: 0.6; } }
+.tl-system { font-size: 13px; color: var(--text4); font-style: italic; padding: 4px 0; }
 
-/* ===== COMPOSE BOX ===== */
-.compose {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 20px;
-  transition: border-color var(--transition);
-}
+/* ===== COMPOSE ===== */
+.compose { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; transition: border-color var(--transition); }
 .compose:focus-within { border-color: var(--border-bright); }
-.compose textarea {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-  resize: none;
-  outline: none;
-  min-height: 48px;
-  max-height: 200px;
-}
+.compose textarea { width: 100%; background: transparent; border: none; color: var(--text); font-size: 15px; line-height: 1.5; resize: none; outline: none; min-height: 48px; max-height: 200px; }
 .compose textarea::placeholder { color: var(--text4); }
-.compose-preview {
-  margin-top: 12px;
-  position: relative;
-  display: inline-block;
-}
-.compose-preview img {
-  max-height: 120px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-.compose-preview-remove {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 22px;
-  height: 22px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  color: var(--danger);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.compose-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 12px;
-  gap: 8px;
-}
-.compose-attach {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  color: var(--text3);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition);
-}
+.compose-preview { margin-top: 12px; position: relative; display: inline-block; }
+.compose-preview img { max-height: 120px; border-radius: 8px; border: 1px solid var(--border); }
+.compose-preview-remove { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; background: var(--bg); border: 1px solid var(--border); border-radius: 50%; color: var(--danger); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.compose-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 8px; }
+.compose-attach { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-radius: 8px; background: var(--bg3); border: 1px solid var(--border); color: var(--text3); font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); }
 .compose-attach:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ===== ADVICE ===== */
-.advice-panel {
-  background: linear-gradient(160deg, rgba(6, 95, 70, 0.2), var(--surface));
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 16px;
-}
+.advice-panel { background: linear-gradient(160deg, rgba(6,95,70,0.2), var(--surface)); border: 1px solid var(--border-bright); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
 .advice-panel h3 { color: var(--accent); margin-bottom: 10px; font-size: 17px; font-weight: 700; }
 .advice-panel .overview { color: var(--text2); line-height: 1.7; font-size: 14px; margin-bottom: 18px; }
 .advice-section { margin-bottom: 18px; }
-.advice-section h4 {
-  font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase;
-  letter-spacing: 0.8px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
-}
+.advice-section h4 { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .advice-section ul { list-style: none; padding: 0; }
-.advice-section ul li {
-  font-size: 14px; color: var(--text2); line-height: 1.6; padding: 5px 0 5px 20px; position: relative;
-}
-.advice-section ul li::before {
-  content: ""; position: absolute; left: 0; top: 13px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-dim);
-}
+.advice-section ul li { font-size: 14px; color: var(--text2); line-height: 1.6; padding: 5px 0 5px 20px; position: relative; }
+.advice-section ul li::before { content: ""; position: absolute; left: 0; top: 13px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-dim); }
 .advice-section.warnings ul li::before { background: var(--warn); }
-.advice-section.warnings ul li { color: rgba(251, 191, 36, 0.85); }
+.advice-section.warnings ul li { color: rgba(251,191,36,0.85); }
 
 /* ===== MILESTONES ===== */
-.milestone-item {
-  display: flex; align-items: center; gap: 12px; padding: 10px 0;
-  border-bottom: 1px solid var(--border); cursor: pointer;
-}
+.milestone-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
 .milestone-item:last-child { border-bottom: none; }
-.milestone-check {
-  width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--text4);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  transition: all var(--transition); font-size: 13px; color: transparent;
-}
+.milestone-check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--text4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all var(--transition); font-size: 13px; color: transparent; }
 .milestone-item.done .milestone-check { background: var(--accent-dim); border-color: var(--accent-dim); color: #fff; }
 .milestone-item.done .milestone-label { text-decoration: line-through; opacity: 0.5; }
 .milestone-label { font-size: 14px; color: var(--text2); font-weight: 500; }
@@ -492,135 +419,153 @@ input, textarea, select { font-family:inherit; }
 /* ===== STATS ===== */
 .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
 .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; text-align: center; }
-.stat-value {
-  font-size: 26px; font-weight: 800;
-  background: linear-gradient(135deg, var(--accent), var(--mint));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
+.stat-value { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--mint)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .stat-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
 
 /* ===== TABS ===== */
 .tabs { display: flex; gap: 4px; background: var(--bg2); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 18px; }
-.tab {
-  flex: 1; padding: 10px 8px; cursor: pointer; font-size: 13px; font-weight: 600;
-  color: var(--text3); border-radius: 8px; transition: all var(--transition); text-align: center; white-space: nowrap;
-}
+.tab { flex: 1; padding: 10px 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text3); border-radius: 8px; transition: all var(--transition); text-align: center; white-space: nowrap; }
 .tab:hover { color: var(--text2); }
 .tab.active { color: var(--accent); background: var(--bg3); box-shadow: var(--shadow-sm); }
 
 /* ===== MODAL ===== */
-.modal-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.92); z-index: 200;
-  display: flex; align-items: center; justify-content: center; padding: 16px;
-}
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .modal-overlay img { max-width: 95vw; max-height: 90vh; border-radius: var(--radius-sm); }
-.close-modal {
-  position: absolute; top: 16px; right: 16px;
-  background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border: none;
-  color: #fff; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-}
-.confirm-delete {
-  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 28px; max-width: 380px; width: 100%; text-align: center;
-}
-.confirm-delete h3 { margin-bottom: 10px; font-size: 18px; }
-.confirm-delete p { color: var(--text3); margin-bottom: 22px; font-size: 14px; line-height: 1.5; }
+.close-modal { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border: none; color: #fff; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.confirm-modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; max-width: 380px; width: 100%; text-align: center; }
+.confirm-modal h3 { margin-bottom: 10px; font-size: 18px; }
+.confirm-modal p { color: var(--text3); margin-bottom: 22px; font-size: 14px; line-height: 1.5; }
 
 /* ===== EMPTY STATE ===== */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
-.empty-icon {
-  width: 72px; height: 72px; background: var(--accent-glow); border-radius: 20px;
-  display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 16px;
-}
+.empty-icon { width: 72px; height: 72px; background: var(--accent-glow); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 16px; }
 .empty-state h3 { color: var(--text); font-size: 18px; margin-bottom: 8px; font-weight: 700; }
 .empty-state p { font-size: 14px; line-height: 1.5; max-width: 300px; margin: 0 auto; }
 
 /* ===== PLANT HERO ===== */
-.plant-hero {
-  background: linear-gradient(160deg, rgba(6, 95, 70, 0.15), var(--surface));
-  border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px;
-}
+.plant-hero { background: linear-gradient(160deg, rgba(6,95,70,0.15), var(--surface)); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
 .plant-hero .plant-name { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
 .plant-hero .plant-meta { font-size: 13px; color: var(--text3); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
-.stage-label {
-  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
-  color: var(--accent); background: var(--accent-glow); padding: 4px 12px; border-radius: 50px; margin-top: 10px;
-}
-
-/* ===== CARD COVER ===== */
-.card-cover {
-  margin: -18px -18px 14px; height: 140px; overflow: hidden;
-  border-radius: var(--radius) var(--radius) 0 0; position: relative;
-}
-.card-cover img { width: 100%; height: 100%; object-fit: cover; }
-.card-cover::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
-  background: linear-gradient(transparent, var(--surface));
-}
-
-/* ===== BADGE ===== */
-.badge { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 50px; letter-spacing: 0.3px; }
-.badge-active { background: var(--accent-glow); color: var(--accent); }
-.badge-done { background: rgba(107, 144, 128, 0.2); color: var(--text3); }
-
-/* ===== SECTION TITLE ===== */
-.section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 8px; }
-.section-head h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+.stage-label { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-glow); padding: 4px 12px; border-radius: 50px; margin-top: 10px; }
 
 /* ===== SMART PROMPT ===== */
-.smart-prompt {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(52, 211, 153, 0.04));
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.smart-prompt-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
-.smart-prompt-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
-.smart-prompt-dismiss {
-  background: none; border: none; color: var(--text4); font-size: 18px; cursor: pointer;
-  flex-shrink: 0; padding: 0 2px; margin-left: auto;
-}
-.smart-prompt-dismiss:hover { color: var(--text3); }
+.smart-prompt { background: linear-gradient(135deg, rgba(245,200,66,0.1), rgba(245,200,66,0.05)); border: 1px solid rgba(245,200,66,0.2); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.smart-prompt-icon { font-size: 20px; flex-shrink: 0; }
+.smart-prompt-text { font-size: 14px; color: rgba(245,200,66,0.9); line-height: 1.5; flex: 1; }
+.smart-prompt-dismiss { background: none; border: none; color: rgba(245,200,66,0.5); font-size: 18px; cursor: pointer; padding: 0 2px; flex-shrink: 0; }
+.smart-prompt-dismiss:hover { color: rgba(245,200,66,0.9); }
 
-/* ===== ANIMATIONS ===== */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.fade-in { animation: fadeUp 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+/* ===== LOADING ===== */
+.loading-screen { display: flex; align-items: center; justify-content: center; min-height: 60vh; flex-direction: column; gap: 16px; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeUp 0.3s ease; }
 
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+/* ===== TOAST ===== */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 50px;
+  padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--text2);
+  z-index: 999; box-shadow: var(--shadow); animation: fadeUp 0.3s ease;
+  white-space: nowrap;
+}
+.toast.success { border-color: rgba(52,211,153,0.3); color: var(--accent); }
+.toast.error { border-color: rgba(251,113,133,0.3); color: var(--danger); }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-logo" onclick="goHome()" style="cursor:pointer">
-    <div class="logo-icon">🌿</div>
-    <h1>GrowGuide</h1>
+<!-- ===== AUTH SCREEN ===== -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="logo.png" alt="Pot Log Logo" onerror="this.style.display='none'">
+        <h1>Pot Log</h1>
+        <p>Your cannabis grow journal</p>
+      </div>
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</div>
+        <div class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</div>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+
+      <!-- Login Form -->
+      <div id="login-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Sign In</button>
+      </div>
+
+      <!-- Register Form -->
+      <div id="register-form" style="display:none">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="reg-username" placeholder="growmaster42" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="reg-password" placeholder="Min 8 chars" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <input type="password" id="reg-confirm" placeholder="Repeat password" autocomplete="new-password">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" id="register-btn" onclick="doRegister()">Create Account</button>
+      </div>
+    </div>
   </div>
-  <div class="nav-breadcrumb" id="breadcrumb"></div>
 </div>
 
-<div class="container" id="app"></div>
+<!-- ===== MAIN APP ===== -->
+<div id="main-app" style="display:none">
+  <div class="header">
+    <div class="header-logo" onclick="goHome()">
+      <img src="logo.png" alt="Pot Log" onerror="this.style.display='none'">
+      <h1>Pot Log</h1>
+    </div>
+    <nav id="breadcrumb" class="nav-breadcrumb"></nav>
+    <div class="header-right">
+      <div class="user-avatar-btn" id="avatar-btn" onclick="toggleDropdown()">🌱</div>
+      <div class="user-dropdown" id="user-dropdown">
+        <div class="user-dropdown-header">
+          <div class="dname" id="dd-name">—</div>
+          <div class="uname" id="dd-username">—</div>
+        </div>
+        <div class="user-dropdown-item" onclick="goProfile(); closeDropdown()">👤 &nbsp;Profile</div>
+        <div class="user-dropdown-item" onclick="goSettings(); closeDropdown()">⚙️ &nbsp;Settings</div>
+        <div class="user-dropdown-item danger" onclick="doLogout()">↩ &nbsp;Sign Out</div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div id="app"></div>
+  </div>
+</div>
 
-<div class="modal-overlay" id="lightbox" style="display:none" onclick="closeLightbox()">
+<!-- ===== LIGHTBOX ===== -->
+<div id="lightbox" class="modal-overlay" style="display:none" onclick="closeLightbox()">
   <button class="close-modal" onclick="closeLightbox()">&times;</button>
-  <img id="lightbox-img" src="" alt="Photo">
+  <img id="lightbox-img" src="" alt="">
 </div>
 
-<div class="modal-overlay" id="delete-modal" style="display:none">
-  <div class="confirm-delete">
-    <h3 id="delete-title">Confirm Delete</h3>
+<!-- ===== DELETE CONFIRM MODAL ===== -->
+<div id="delete-modal" class="modal-overlay" style="display:none">
+  <div class="confirm-modal">
+    <h3 id="delete-title"></h3>
     <p id="delete-msg"></p>
     <div class="btn-group" style="justify-content:center">
       <button class="btn btn-danger" id="delete-confirm">Delete</button>
@@ -629,149 +574,81 @@ input, textarea, select { font-family:inherit; }
   </div>
 </div>
 
+<!-- ===== INPUT CONFIRM MODAL (e.g. delete account) ===== -->
+<div id="input-modal" class="modal-overlay" style="display:none">
+  <div class="confirm-modal">
+    <h3 id="input-modal-title"></h3>
+    <p id="input-modal-msg"></p>
+    <div class="form-group" style="text-align:left">
+      <label id="input-modal-label">Password</label>
+      <input type="password" id="input-modal-field" placeholder="Enter your password">
+    </div>
+    <div class="btn-group" style="justify-content:center">
+      <button class="btn btn-danger" id="input-modal-confirm">Confirm</button>
+      <button class="btn btn-secondary" onclick="closeInputModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// ============ CONSTANTS ============
 const STAGES = [
-  { id: 'germination', name: 'Germination', icon: '🌱', days: '3-10 days', typicalDays: 7 },
-  { id: 'seedling', name: 'Seedling', icon: '🌿', days: '2-3 weeks', typicalDays: 18 },
-  { id: 'vegetative', name: 'Vegetative', icon: '🪴', days: '3-8 weeks', typicalDays: 38 },
-  { id: 'preflower', name: 'Pre-Flower', icon: '🌸', days: '1-2 weeks', typicalDays: 10 },
-  { id: 'flowering', name: 'Flowering', icon: '💮', days: '6-12 weeks', typicalDays: 63 },
-  { id: 'harvest', name: 'Harvest', icon: '✂️', days: '1-3 days', typicalDays: 2 },
-  { id: 'drying_curing', name: 'Drying & Curing', icon: '🏺', days: '2-8 weeks', typicalDays: 35 }
+  { id: 'germination',  name: 'Germination',  icon: '🌰', days: '1–7 days' },
+  { id: 'seedling',     name: 'Seedling',     icon: '🌿', days: '1–3 weeks' },
+  { id: 'vegetative',   name: 'Vegetative',   icon: '🍃', days: '2–8 weeks' },
+  { id: 'preflower',    name: 'Pre-flower',   icon: '🌸', days: '1–2 weeks' },
+  { id: 'flowering',    name: 'Flowering',    icon: '🌺', days: '6–12 weeks' },
+  { id: 'harvest',      name: 'Harvest',      icon: '✂️',  days: '1–3 days' },
+  { id: 'drying_curing',name: 'Drying & Curing', icon: '🫙', days: '2–8 weeks' }
 ];
+
+const AVATAR_EMOJIS = ['🌱','🪴','🌿','🍃','🌲','🌳','🌻','🌸','🌺','🍀','☘️','🌾','🧑‍🌾','👨‍🌾','🧪','🔬','💧','☀️','🏡','⭐'];
 
 const GROW_ADVICE = {
   germination: {
-    overview: "This is where life begins. Your seed needs moisture, warmth, and darkness to crack open and send out a taproot.",
-    tips: [
-      "Use the paper towel method: place seeds between damp (not soaking) paper towels on a plate, cover with another plate",
-      "Keep temperature between 22-25°C (72-77°F)",
-      "Seeds should crack within 24-72 hours — some take up to 7 days",
-      "Once the taproot is 1-2cm long, transplant with the root facing down",
-      "Handle seeds gently with tweezers — oils from fingers can damage them",
-      "Use distilled or pH 6.0-6.5 water for soaking"
-    ],
-    warnings: [
-      "Don't let paper towels dry out — check twice daily",
-      "Avoid direct light during germination",
-      "Don't plant too deep — 1-2cm is plenty"
-    ],
-    milestones: ["Seed has swelled", "Taproot visible", "Taproot 1-2cm long", "Transplanted to medium"]
+    overview: "Germination is where it all begins. Your main job is to provide the right conditions — warmth, moisture and darkness — and then leave well alone.",
+    tips: ["Keep seeds at 20–25°C for best germination rates","Use the paper towel method: dampen a towel, place seed inside, fold over, put in a warm dark place","Alternatively soak seeds in pH'd water (6.0–6.5) for 12–24 hours before paper towel","Once taproot is 0.5–1cm long, plant root-down 0.5cm deep in a small pot","Use a seedling heat mat to maintain consistent warmth","Check moisture daily — towel should be damp but not soaking"],
+    warnings: ["Never let the paper towel dry out completely — seeds can die within hours","Don't expose the taproot to direct light — it's sensitive","Don't plant too deep — 0.5cm is enough","Handle seeds and taproots with care — they're fragile"],
+    milestones: ["Seed soaking complete", "Taproot visible", "Planted in medium", "First sprout above soil"]
   },
   seedling: {
-    overview: "Your baby plant is developing its first true leaves. This is a delicate stage — gentle conditions are key.",
-    tips: [
-      "Provide 18-24 hours of gentle light (CFL or LED at distance)",
-      "Keep humidity high: 65-70% using a humidity dome",
-      "Temperature: 20-25°C (68-77°F)",
-      "Water sparingly — seedlings have tiny root systems",
-      "Use a spray bottle to mist, don't pour water directly on the stem",
-      "First true leaves (serrated) will appear after the round cotyledons"
-    ],
-    warnings: [
-      "Stretching (tall, thin stems) means the light is too far away — lower it",
-      "Yellowing cotyledons are normal as they're absorbed — don't panic",
-      "Overwatering is the #1 killer of seedlings — let soil dry slightly between waterings",
-      "Don't add nutrients yet — seed and soil have enough for now"
-    ],
-    milestones: ["Cotyledons opened", "First true leaves", "2-3 nodes visible", "Root system establishing"]
+    overview: "Your plant is above ground and finding its feet. The seedling stage is delicate — focus on gentle care, good light, and high humidity.",
+    tips: ["Keep humidity at 65–70% — a clear dome over the seedling helps","Light schedule: 18/6 (on/off) for indoor, as much sun as possible for outdoor","Start with a weak nutrient solution (1/4 strength) only after the first true leaves appear","Water sparingly — the root zone is tiny. Water in a small circle around the stem","Use a small fan on low to gently strengthen the stem"],
+    warnings: ["Overwatering is the #1 killer of seedlings — let the top of the soil dry before watering","Don't feed nutrients until you see the first serrated leaves","Keep direct airflow gentle — seedlings can't handle strong wind","Don't transplant too early — wait until the seedling is established"],
+    milestones: ["Cotyledons open", "First true leaves visible", "3 nodes developed", "Ready to transplant"]
   },
   vegetative: {
-    overview: "The plant is growing rapidly, building the structure that will support heavy buds later. This is when you shape your plant.",
-    tips: [
-      "Light schedule: 18/6 (18 hours on, 6 off) is the standard",
-      "Start nutrients at 1/4 strength, increase gradually each week",
-      "Focus on nitrogen-heavy fertiliser during this stage",
-      "Begin low-stress training (LST) by gently bending stems and tying them down",
-      "Consider topping or FIMming after the 4th-5th node for bushier growth",
-      "Keep humidity at 40-60%, temperature at 22-28°C",
-      "Water when the top 2-3cm of soil is dry — lift the pot to feel the weight"
-    ],
-    warnings: [
-      "Watch for nutrient burn (brown/crispy leaf tips) — ease off if you see it",
-      "Check pH of runoff water (soil: 6.0-7.0, hydro: 5.5-6.5)",
-      "Inspect undersides of leaves for pests weekly",
-      "Don't overwater — droopy leaves can mean too much OR too little water"
-    ],
-    milestones: ["5+ nodes developed", "Training started", "Healthy branching", "Pre-flower signs appearing"]
+    overview: "This is the growth phase. Your plant is building the structure that will eventually support its buds. Focus on training, nutrients, and environment.",
+    tips: ["Light schedule: 18/6 (indoor) to maximise growth","Start nutrients at 1/4 strength, increasing slowly — look for signs of deficiency or burn","Low-stress training (LST): tie down branches to spread the canopy and increase yields","Topping or FIMing encourages bushier growth and more bud sites","Transplant into a larger pot when roots begin circling the bottom (root-bound)","pH your water: 6.0–7.0 for soil, 5.5–6.5 for coco/hydro"],
+    warnings: ["Nutrient burn (yellowing tips) means you're feeding too much — flush and reduce","Watch for pests under leaves: spider mites, fungus gnats, and aphids love veg plants","Don't over-train — give the plant time to recover between each training session","Keep night temps above 18°C to avoid stunted growth"],
+    milestones: ["Transplanted to final pot", "LST / training started", "Topped or FIMed", "Ready to flip"]
   },
   preflower: {
-    overview: "The plant is showing its sex and preparing to flower. This transition period is crucial for setting up a successful bloom.",
-    tips: [
-      "Switch light schedule to 12/12 to trigger flowering (photoperiod strains)",
-      "Identify sex: females show white pistils, males show pollen sacs",
-      "Remove any male plants immediately to prevent pollination",
-      "Begin transitioning to bloom nutrients (higher P and K)",
-      "The plant may stretch 50-100% in height during this phase — plan for space",
-      "Support branches with stakes or a SCROG net if needed"
-    ],
-    warnings: [
-      "Light leaks during the dark period can cause hermaphroditism — check your space",
-      "Don't do heavy defoliation or training now — it causes stress during transition",
-      "Stress during this phase can turn females hermaphrodite",
-      "Keep environment stable — big swings in temp/humidity cause problems"
-    ],
+    overview: "You've flipped the lights (or nature has triggered it). The plant is transitioning from growth to reproduction. This phase sets up your entire flowering period.",
+    tips: ["Switch light schedule to 12/12 to trigger flowering (photoperiod strains)","Identify sex: females show white pistils, males show pollen sacs","Remove any male plants immediately to prevent pollination","Begin transitioning to bloom nutrients (higher P and K)","The plant may stretch 50–100% in height during this phase — plan for space","Support branches with stakes or a SCROG net if needed"],
+    warnings: ["Light leaks during the dark period can cause hermaphroditism — check your space","Don't do heavy defoliation or training now — it causes stress during transition","Stress during this phase can turn females hermaphrodite","Keep environment stable — big swings in temp/humidity cause problems"],
     milestones: ["12/12 light cycle started", "Sex identified", "Males removed", "Stretch beginning"]
   },
   flowering: {
     overview: "This is what it's all been building to. Your plant is producing buds. Patience and care here directly affect your final yield and quality.",
-    tips: [
-      "Use bloom nutrients with higher phosphorus (P) and potassium (K)",
-      "Keep humidity at 40-50% to prevent bud rot",
-      "Temperature: 20-26°C — cooler nights can bring out purple colours",
-      "Stop all training and topping — focus on bud development",
-      "Watch trichomes with a jeweller's loupe to time your harvest",
-      "Begin flushing with plain pH'd water 1-2 weeks before harvest",
-      "Support heavy branches with yo-yo hangers or stakes"
-    ],
-    warnings: [
-      "Bud rot (botrytis) thrives in high humidity — ensure good airflow",
-      "Don't spray anything on buds — use only root-zone treatments",
-      "Avoid nutrient burn — less is more in late flower",
-      "Check trichomes: clear = too early, milky = peak THC, amber = more sedative effect"
-    ],
+    tips: ["Use bloom nutrients with higher phosphorus (P) and potassium (K)","Keep humidity at 40–50% to prevent bud rot","Temperature: 20–26°C — cooler nights can bring out purple colours","Stop all training and topping — focus on bud development","Watch trichomes with a jeweller's loupe to time your harvest","Begin flushing with plain pH'd water 1–2 weeks before harvest","Support heavy branches with yo-yo hangers or stakes"],
+    warnings: ["Bud rot (botrytis) thrives in high humidity — ensure good airflow","Don't spray anything on buds — use only root-zone treatments","Avoid nutrient burn — less is more in late flower","Check trichomes: clear = too early, milky = peak THC, amber = more sedative effect"],
     milestones: ["Buds forming", "Pistils turning orange", "Trichomes milky", "Flush started", "Ready to harvest"]
   },
   harvest: {
     overview: "Timing is everything. Harvest too early and you lose potency; too late and the effect becomes overly sedative.",
-    tips: [
-      "Harvest when 70-90% of pistils have darkened and trichomes are mostly milky with some amber",
-      "Cut whole plant or individual branches — your choice based on space",
-      "Trim fan leaves immediately (wet trim) or after drying (dry trim)",
-      "Wet trimming is faster; dry trimming preserves more terpenes",
-      "Work in a cool room to keep trichomes from getting sticky",
-      "Save sugar leaf trim for making extracts or edibles"
-    ],
-    warnings: [
-      "Don't rush — checking trichomes is the most reliable harvest indicator",
-      "Handle buds gently to preserve trichomes",
-      "Sanitise all cutting tools with isopropyl alcohol",
-      "Have your drying space ready BEFORE you chop"
-    ],
+    tips: ["Harvest when 70–90% of pistils have darkened and trichomes are mostly milky with some amber","Cut whole plant or individual branches — your choice based on space","Trim fan leaves immediately (wet trim) or after drying (dry trim)","Wet trimming is faster; dry trimming preserves more terpenes","Work in a cool room to keep trichomes from getting sticky","Save sugar leaf trim for making extracts or edibles"],
+    warnings: ["Don't rush — checking trichomes is the most reliable harvest indicator","Handle buds gently to preserve trichomes","Sanitise all cutting tools with isopropyl alcohol","Have your drying space ready BEFORE you chop"],
     milestones: ["Trichomes checked", "Plant chopped", "Wet trimmed", "Hung to dry"]
   },
   drying_curing: {
     overview: "The final stretch. Proper drying and curing makes the difference between good and great flower — it improves flavour, smoothness, and potency.",
-    tips: [
-      "Hang whole branches upside down in a dark room with good airflow",
-      "Ideal drying conditions: 15-21°C, 55-65% humidity",
-      "Drying takes 7-14 days — branches should snap (not bend) when ready",
-      "Trim to final shape, then place buds loosely in glass mason jars",
-      "Burp jars (open for 15 min) 2-3 times daily for the first 2 weeks",
-      "After 2 weeks, burp once daily for another 2 weeks",
-      "Cure for minimum 2 weeks — 4-8 weeks is ideal for peak flavour"
-    ],
-    warnings: [
-      "If you smell ammonia when burping, buds are too wet — take them out and dry more",
-      "Don't use paper bags or plastic bags — glass jars only",
-      "Keep jars out of direct light",
-      "Monitor humidity in jars with a small hygrometer — target 58-62%"
-    ],
+    tips: ["Hang whole branches upside down in a dark room with good airflow","Ideal drying conditions: 15–21°C, 55–65% humidity","Drying takes 7–14 days — branches should snap (not bend) when ready","Trim to final shape, then place buds loosely in glass mason jars","Burp jars (open for 15 min) 2–3 times daily for the first 2 weeks","After 2 weeks, burp once daily for another 2 weeks","Cure for minimum 2 weeks — 4–8 weeks is ideal for peak flavour"],
+    warnings: ["If you smell ammonia when burping, buds are too wet — take them out and dry more","Don't use paper bags or plastic bags — glass jars only","Keep jars out of direct light","Monitor humidity in jars with a small hygrometer — target 58–62%"],
     milestones: ["Hanging to dry", "Branches snapping", "Jarred for curing", "2-week cure complete", "Final cure complete"]
   }
 };
 
-// Smart prompts based on stage + time
 const SMART_PROMPTS = {
   germination: [
     { afterDays: 0, msg: "Have you checked your paper towels are still damp? Seeds dry out fast." },
@@ -779,9 +656,9 @@ const SMART_PROMPTS = {
     { afterDays: 7, msg: "A week in germination is getting long. Check the seed hasn't dried out or rotted. Consider trying a new seed if there's no taproot." }
   ],
   seedling: [
-    { afterDays: 0, msg: "Keep that humidity dome on! 65-70% humidity is crucial for seedlings." },
+    { afterDays: 0, msg: "Keep that humidity dome on! 65–70% humidity is crucial for seedlings." },
     { afterDays: 5, msg: "Seeing true leaves yet? They'll be the serrated ones after the round cotyledons." },
-    { afterDays: 14, msg: "Two weeks as a seedling — if you've got 2-3 nodes, your plant may be ready to move into veg." }
+    { afterDays: 14, msg: "Two weeks as a seedling — if you've got 2–3 nodes, your plant may be ready to move into veg." }
   ],
   vegetative: [
     { afterDays: 0, msg: "Time to grow big! Start nutrients at 1/4 strength and work up slowly." },
@@ -801,25 +678,44 @@ const SMART_PROMPTS = {
     { afterDays: 56, msg: "Eight weeks in flower. Many strains are nearing harvest. Are trichomes turning milky? Consider starting your flush." }
   ],
   harvest: [
-    { afterDays: 0, msg: "Chop day! Make sure your drying room is set up: 15-21°C, 55-65% humidity, good airflow, and dark." }
+    { afterDays: 0, msg: "Chop day! Make sure your drying room is set up: 15–21°C, 55–65% humidity, good airflow, and dark." }
   ],
   drying_curing: [
     { afterDays: 0, msg: "Patience pays off now. Don't rush the dry — slow drying preserves terpenes and smoothness." },
     { afterDays: 7, msg: "One week drying. Are the small stems snapping when you bend them? If they still bend, give it more time." },
-    { afterDays: 14, msg: "If you've jarred up, remember to burp 2-3 times daily for the first two weeks." },
-    { afterDays: 28, msg: "Four weeks cured. Your flower should be tasting noticeably smoother now. Another 2-4 weeks will be even better." }
+    { afterDays: 14, msg: "If you've jarred up, remember to burp 2–3 times daily for the first two weeks." },
+    { afterDays: 28, msg: "Four weeks cured. Your flower should be tasting noticeably smoother now. Another 2–4 weeks will be even better." }
   ]
 };
 
-// ============ DATA ============
-function loadData() {
-  try { return JSON.parse(localStorage.getItem('growguide_data')) || { grows: [] }; }
-  catch { return { grows: [] }; }
-}
-function saveData(d) { localStorage.setItem('growguide_data', JSON.stringify(d)); }
-let data = loadData();
+// ============ STATE ============
+let currentUser = null;
+let data = { grows: [] };
 let currentView = 'home', currentGrowId = null, currentPlantId = null, currentPlantTab = 'timeline';
-let pendingPhoto = null; // base64 for compose box
+let pendingPhoto = null;
+let selectedAvatar = null;
+
+// ============ API ============
+async function api(method, path, body) {
+  const opts = { method, headers: {} };
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
+// ============ TOAST ============
+function showToast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
 
 // ============ UTILITY ============
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
@@ -841,7 +737,6 @@ function getPlant(gId, pId) { const g = getGrow(gId); return g ? g.plants.find(p
 function stageIndex(sid) { return STAGES.findIndex(s => s.id === sid); }
 function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-// Get days since last stage change
 function daysSinceStageChange(plant) {
   if (!plant.notes || plant.notes.length === 0) return daysSince(plant.createdAt);
   const stageNotes = [...plant.notes].reverse();
@@ -849,57 +744,144 @@ function daysSinceStageChange(plant) {
   return lastChange ? daysSince(lastChange.timestamp) : daysSince(plant.createdAt);
 }
 
-// Get relevant smart prompt for a plant
 function getSmartPrompt(plant) {
   const daysInStage = daysSinceStageChange(plant);
   const prompts = SMART_PROMPTS[plant.stage];
   if (!prompts) return null;
-  // Find the most recent applicable prompt
   let best = null;
-  for (const p of prompts) {
-    if (daysInStage >= p.afterDays) best = p;
-  }
-  // Don't show if dismissed
+  for (const p of prompts) { if (daysInStage >= p.afterDays) best = p; }
   const dismissKey = `${plant.id}_${plant.stage}_${best?.afterDays}`;
   if (best && plant.dismissedPrompts?.includes(dismissKey)) return null;
   return best ? { ...best, dismissKey } : null;
 }
 
-// Build unified timeline from notes + legacy photos
 function getTimeline(plant) {
   const entries = [];
-  // Notes (may have .photo attached in new format)
   (plant.notes || []).forEach(n => {
     entries.push({
       id: n.id, type: n.photo ? 'entry' : (n.text?.startsWith('Stage changed to') ? 'system' : 'note'),
       text: n.text, photo: n.photo || null, timestamp: n.timestamp, stage: n.stage
     });
   });
-  // Legacy photos (only those NOT already referenced in notes)
-  const notePhotoIds = new Set((plant.notes || []).filter(n => n.photoId).map(n => n.photoId));
-  (plant.photos || []).forEach(p => {
-    if (!notePhotoIds.has(p.id)) {
-      entries.push({
-        id: p.id, type: 'photo', text: null, photo: p.data, timestamp: p.timestamp, stage: p.stage
-      });
-    }
-  });
   entries.sort((a, b) => b.timestamp - a.timestamp);
   return entries;
+}
+
+// ============ AUTH ============
+function switchAuthTab(tab) {
+  document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tab-login').className = 'auth-tab' + (tab === 'login' ? ' active' : '');
+  document.getElementById('tab-register').className = 'auth-tab' + (tab === 'register' ? ' active' : '');
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) return showAuthError('Please enter your email and password.');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const { user } = await api('POST', '/api/auth/login', { email, password });
+    currentUser = user;
+    await loadAllData();
+    showApp();
+  } catch (err) {
+    showAuthError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const confirm = document.getElementById('reg-confirm').value;
+  if (!username || !email || !password) return showAuthError('Please fill in all fields.');
+  if (password !== confirm) return showAuthError('Passwords do not match.');
+  const btn = document.getElementById('register-btn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    const { user } = await api('POST', '/api/auth/register', { username, email, password });
+    currentUser = user;
+    data = { grows: [] };
+    showApp();
+  } catch (err) {
+    showAuthError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+
+async function doLogout() {
+  closeDropdown();
+  try { await api('POST', '/api/auth/logout'); } catch {}
+  currentUser = null;
+  data = { grows: [] };
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = '';
+  switchAuthTab('login');
+}
+
+// ============ UI STATE ============
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = '';
+  updateUserDropdown();
+  render();
+}
+
+function updateUserDropdown() {
+  if (!currentUser) return;
+  document.getElementById('avatar-btn').textContent = currentUser.avatar_emoji || '🌱';
+  document.getElementById('dd-name').textContent = currentUser.display_name || currentUser.username;
+  document.getElementById('dd-username').textContent = '@' + currentUser.username;
+}
+
+function toggleDropdown() {
+  const dd = document.getElementById('user-dropdown');
+  dd.classList.toggle('open');
+}
+function closeDropdown() {
+  document.getElementById('user-dropdown').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.header-right')) closeDropdown();
+});
+
+async function loadAllData() {
+  const { grows } = await api('GET', '/api/grows');
+  data.grows = grows;
 }
 
 // ============ RENDER ============
 function render() {
   const app = document.getElementById('app'), bc = document.getElementById('breadcrumb');
-  if (currentView === 'home') { bc.innerHTML = ''; renderHome(app); }
-  else if (currentView === 'grow') {
+  if (currentView === 'home') {
+    bc.innerHTML = '';
+    renderHome(app);
+  } else if (currentView === 'grow') {
     const g = getGrow(currentGrowId);
-    bc.innerHTML = `<span onclick="goHome()">Home</span><span class="sep">›</span><span>${g?.name || ''}</span>`;
+    bc.innerHTML = `<span onclick="goHome()">Home</span><span class="sep">›</span><span>${escapeHtml(g?.name || '')}</span>`;
     renderGrow(app);
   } else if (currentView === 'plant') {
     const g = getGrow(currentGrowId), p = getPlant(currentGrowId, currentPlantId);
-    bc.innerHTML = `<span onclick="goHome()">Home</span><span class="sep">›</span><span onclick="goGrow('${currentGrowId}')">${g?.name || ''}</span><span class="sep">›</span><span>${p?.name || ''}</span>`;
+    bc.innerHTML = `<span onclick="goHome()">Home</span><span class="sep">›</span><span onclick="goGrow('${currentGrowId}')">${escapeHtml(g?.name || '')}</span><span class="sep">›</span><span>${escapeHtml(p?.name || '')}</span>`;
     renderPlant(app);
+  } else if (currentView === 'profile') {
+    bc.innerHTML = `<span onclick="goHome()">Home</span><span class="sep">›</span><span>Profile</span>`;
+    renderProfile(app);
+  } else if (currentView === 'settings') {
+    bc.innerHTML = `<span onclick="goHome()">Home</span><span class="sep">›</span><span>Settings</span>`;
+    renderSettings(app);
   }
 }
 
@@ -910,14 +892,14 @@ function renderHome(app) {
       <div class="fade-in empty-state" style="padding-top:80px">
         <div class="empty-icon">🌱</div>
         <h3>Start your first grow</h3>
-        <p style="margin-bottom:24px">Track your cannabis plants from seed to cure with tailored advice at every stage.</p>
+        <p style="margin-bottom:24px">Track your plants from seed to cure with tailored advice at every stage.</p>
         <button class="btn btn-primary" onclick="showNewGrowForm()">+ New Grow</button>
       </div><div id="new-grow-form"></div>`;
     return;
   }
   const totalPlants = data.grows.reduce((s, g) => s + g.plants.length, 0);
   const active = data.grows.filter(g => !g.completed).length;
-  const photos = data.grows.reduce((s, g) => s + g.plants.reduce((s2, p) => s2 + (p.photos?.length || 0) + (p.notes?.filter(n => n.photo)?.length || 0), 0), 0);
+  const photos = data.grows.reduce((s, g) => s + g.plants.reduce((s2, p) => s2 + (p.notes?.filter(n => n.photo)?.length || 0), 0), 0);
 
   app.innerHTML = `
     <div class="fade-in">
@@ -937,13 +919,13 @@ function renderHome(app) {
           return `<div class="card interactive" onclick="goGrow('${g.id}')">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px">
               <div style="min-width:0">
-                <div style="font-size:17px; font-weight:700">${g.name}</div>
-                <div style="font-size:13px; color:var(--text3); margin-top:3px">${g.strain || 'Unknown strain'} · ${g.medium}</div>
+                <div style="font-size:17px; font-weight:700">${escapeHtml(g.name)}</div>
+                <div style="font-size:13px; color:var(--text3); margin-top:3px">${escapeHtml(g.strain || 'Unknown strain')} · ${escapeHtml(g.medium)}</div>
               </div>
               <span class="badge ${g.completed ? 'badge-done' : 'badge-active'}">${g.completed ? 'Done' : 'Active'}</span>
             </div>
             <div style="margin-top:14px; display:flex; gap:14px; font-size:12px; color:var(--text3); font-weight:500">
-              <span>🌿 ${pc} plant${pc !== 1 ? 's' : ''}</span><span>📅 Day ${age}</span><span>${g.environment}</span>
+              <span>🌿 ${pc} plant${pc !== 1 ? 's' : ''}</span><span>📅 Day ${age}</span><span>${escapeHtml(g.environment)}</span>
             </div>
           </div>`;
         }).join('')}
@@ -975,17 +957,19 @@ function showNewGrowForm() {
   document.getElementById('ng-name').focus();
 }
 
-function createGrow() {
+async function createGrow() {
   const name = document.getElementById('ng-name').value.trim();
-  if (!name) return alert('Please enter a grow name');
-  data.grows.unshift({
-    id: genId(), name,
-    strain: document.getElementById('ng-strain').value.trim(),
-    medium: document.getElementById('ng-medium').value,
-    environment: document.getElementById('ng-env').value,
-    createdAt: Date.now(), completed: false, plants: []
-  });
-  saveData(data); goGrow(data.grows[0].id);
+  if (!name) return showToast('Please enter a grow name', 'error');
+  try {
+    const { grow } = await api('POST', '/api/grows', {
+      name,
+      strain: document.getElementById('ng-strain').value.trim(),
+      medium: document.getElementById('ng-medium').value,
+      environment: document.getElementById('ng-env').value
+    });
+    data.grows.unshift(grow);
+    goGrow(grow.id);
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ============ GROW VIEW ============
@@ -996,9 +980,9 @@ function renderGrow(app) {
   app.innerHTML = `
     <div class="fade-in">
       <div style="margin-bottom:16px">
-        <h2 style="font-size:22px; font-weight:800; letter-spacing:-0.3px">${grow.name}</h2>
+        <h2 style="font-size:22px; font-weight:800; letter-spacing:-0.3px">${escapeHtml(grow.name)}</h2>
         <div style="font-size:13px; color:var(--text3); margin-top:4px; display:flex; gap:10px; flex-wrap:wrap">
-          <span>${grow.strain || 'Unknown strain'}</span><span>·</span><span>${grow.medium}</span><span>·</span><span>${grow.environment}</span><span>·</span><span>Day ${age}</span>
+          <span>${escapeHtml(grow.strain || 'Unknown strain')}</span><span>·</span><span>${escapeHtml(grow.medium)}</span><span>·</span><span>${escapeHtml(grow.environment)}</span><span>·</span><span>Day ${age}</span>
         </div>
         <div class="btn-group" style="margin-top:14px">
           <button class="btn btn-primary btn-sm" onclick="showAddPlantForm()">+ Add Plant</button>
@@ -1011,13 +995,12 @@ function renderGrow(app) {
         <div class="empty-state"><div class="empty-icon">🪴</div><h3>No plants yet</h3><p>Add your first plant to start tracking this grow.</p></div>
       ` : `<div class="card-grid">${grow.plants.map(p => {
         const si = stageIndex(p.stage), stage = STAGES[si];
-        const timeline = getTimeline(p);
-        const lastPhoto = timeline.find(e => e.photo);
-        const entryCount = timeline.length;
+        const lastPhoto = (p.notes || []).slice().reverse().find(n => n.photo);
+        const entryCount = (p.notes || []).length;
         return `<div class="card interactive" onclick="goPlant('${grow.id}','${p.id}')">
           ${lastPhoto ? `<div class="card-cover"><img src="${lastPhoto.photo}" alt="" loading="lazy"></div>` : ''}
-          <div style="font-size:17px; font-weight:700">${p.name}</div>
-          <div style="font-size:13px; color:var(--text3); margin-top:3px">${p.strainOverride || grow.strain || 'Unknown strain'}</div>
+          <div style="font-size:17px; font-weight:700">${escapeHtml(p.name)}</div>
+          <div style="font-size:13px; color:var(--text3); margin-top:3px">${escapeHtml(p.strainOverride || grow.strain || 'Unknown strain')}</div>
           <div class="stage-dots" style="margin-top:10px">
             ${STAGES.map((s, i) => `<div class="stage-dot ${i < si ? 'done' : i === si ? 'current' : 'future'}" title="${s.name}"></div>`).join('')}
             <span style="font-size:12px; color:var(--accent); margin-left:8px; font-weight:600">${stage.icon} ${stage.name}</span>
@@ -1035,7 +1018,7 @@ function showAddPlantForm() {
       <div style="font-size:17px; font-weight:700; margin-bottom:16px">Add Plant</div>
       <div class="form-row">
         <div class="form-group"><label>Plant Name</label><input id="np-name" placeholder="e.g. Big Betty"></div>
-        <div class="form-group"><label>Strain (if different)</label><input id="np-strain" placeholder="${grow.strain || 'Same as grow'}"></div>
+        <div class="form-group"><label>Strain (if different)</label><input id="np-strain" placeholder="${escapeHtml(grow.strain || 'Same as grow')}"></div>
       </div>
       <div class="form-group"><label>Starting Stage</label>
         <select id="np-stage">${STAGES.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}</select>
@@ -1048,25 +1031,38 @@ function showAddPlantForm() {
   document.getElementById('np-name').focus();
 }
 
-function addPlant() {
+async function addPlant() {
   const name = document.getElementById('np-name').value.trim();
-  if (!name) return alert('Please enter a plant name');
-  const grow = getGrow(currentGrowId);
-  grow.plants.push({
-    id: genId(), name,
-    strainOverride: document.getElementById('np-strain').value.trim(),
-    stage: document.getElementById('np-stage').value,
-    createdAt: Date.now(), photos: [], notes: [], milestones: [], dismissedPrompts: []
-  });
-  saveData(data); render();
+  if (!name) return showToast('Please enter a plant name', 'error');
+  try {
+    const { plant } = await api('POST', `/api/grows/${currentGrowId}/plants`, {
+      name,
+      strainOverride: document.getElementById('np-strain').value.trim(),
+      stage: document.getElementById('np-stage').value
+    });
+    const grow = getGrow(currentGrowId);
+    grow.plants.push(plant);
+    render();
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
-function toggleGrowComplete(id) { const g = getGrow(id); g.completed = !g.completed; saveData(data); render(); }
+async function toggleGrowComplete(id) {
+  const g = getGrow(id);
+  try {
+    await api('PUT', `/api/grows/${id}`, { completed: !g.completed });
+    g.completed = !g.completed;
+    render();
+  } catch (err) { showToast(err.message, 'error'); }
+}
 
 function confirmDeleteGrow(id) {
   const g = getGrow(id);
-  showDeleteModal(`Delete "${g.name}"?`, 'This will permanently delete this grow and all its plants, photos, and notes.', () => {
-    data.grows = data.grows.filter(x => x.id !== id); saveData(data); goHome();
+  showDeleteModal(`Delete "${g.name}"?`, 'This will permanently delete this grow and all its plants, photos, and notes.', async () => {
+    try {
+      await api('DELETE', `/api/grows/${id}`);
+      data.grows = data.grows.filter(x => x.id !== id);
+      goHome();
+    } catch (err) { showToast(err.message, 'error'); }
   });
 }
 
@@ -1082,9 +1078,9 @@ function renderPlant(app) {
       <div class="plant-hero">
         <div style="display:flex; justify-content:space-between; align-items:flex-start">
           <div>
-            <div class="plant-name">${plant.name}</div>
+            <div class="plant-name">${escapeHtml(plant.name)}</div>
             <div class="plant-meta">
-              <span>${plant.strainOverride || grow.strain || 'Unknown strain'}</span>
+              <span>${escapeHtml(plant.strainOverride || grow.strain || 'Unknown strain')}</span>
               <span>Day ${age} overall</span>
               <span>Day ${daysInStage} in ${stage.name.toLowerCase()}</span>
             </div>
@@ -1099,7 +1095,6 @@ function renderPlant(app) {
           }).join('')}
         </div>
       </div>
-
       <div class="tabs">
         <div class="tab ${currentPlantTab === 'timeline' ? 'active' : ''}" onclick="switchPlantTab('timeline')">📋 Timeline</div>
         <div class="tab ${currentPlantTab === 'advice' ? 'active' : ''}" onclick="switchPlantTab('advice')">💡 Advice</div>
@@ -1117,22 +1112,17 @@ function renderPlantTab(plant, grow) {
   else if (currentPlantTab === 'advice') renderAdviceTab(c, plant);
 }
 
-// ============ TIMELINE TAB ============
 function renderTimelineTab(c, plant) {
   const timeline = getTimeline(plant);
   const prompt = getSmartPrompt(plant);
-
   c.innerHTML = `
     <div class="fade-in">
       ${prompt ? `
         <div class="smart-prompt" id="smart-prompt">
           <div class="smart-prompt-icon">💡</div>
-          <div class="smart-prompt-text">${prompt.msg}</div>
-          <button class="smart-prompt-dismiss" onclick="dismissPrompt('${prompt.dismissKey}')">&times;</button>
-        </div>
-      ` : ''}
-
-      <!-- Compose box -->
+          <div class="smart-prompt-text">${escapeHtml(prompt.msg)}</div>
+          <button class="smart-prompt-dismiss" onclick="dismissPrompt('${escapeHtml(prompt.dismissKey)}')">&times;</button>
+        </div>` : ''}
       <div class="compose" id="compose-box">
         <textarea id="compose-text" placeholder="What's happening with your plant today?" rows="2" oninput="autoResizeTextarea(this)"></textarea>
         <div id="compose-preview" style="display:none" class="compose-preview"></div>
@@ -1144,7 +1134,6 @@ function renderTimelineTab(c, plant) {
           <button class="btn btn-primary btn-sm" onclick="submitEntry()">Post</button>
         </div>
       </div>
-
       ${timeline.length === 0 ? `
         <div class="empty-state" style="padding:24px"><p>Your timeline is empty. Add your first entry above — snap a photo, write a note, or both.</p></div>
       ` : `
@@ -1219,31 +1208,41 @@ function removePendingPhoto() {
   document.getElementById('compose-photo').value = '';
 }
 
-function submitEntry() {
+async function submitEntry() {
   const text = document.getElementById('compose-text').value.trim();
   if (!text && !pendingPhoto) return;
   const plant = getPlant(currentGrowId, currentPlantId);
-  const entry = { id: genId(), text: text || '', timestamp: Date.now(), stage: plant.stage };
-  if (pendingPhoto) entry.photo = pendingPhoto;
-  plant.notes.push(entry);
-  pendingPhoto = null;
-  saveData(data);
-  renderPlantTab(plant, getGrow(currentGrowId));
+  const btn = document.querySelector('.compose-actions .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const { note } = await api('POST', `/api/grows/${currentGrowId}/plants/${currentPlantId}/notes`, {
+      text: text || '', photo: pendingPhoto || null, stage: plant.stage, timestamp: Date.now()
+    });
+    plant.notes.push(note);
+    pendingPhoto = null;
+    renderPlantTab(plant, getGrow(currentGrowId));
+  } catch (err) {
+    showToast(err.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Post'; }
+  }
 }
 
-function deleteEntry(id) {
+async function deleteEntry(id) {
   const plant = getPlant(currentGrowId, currentPlantId);
-  plant.notes = plant.notes.filter(n => n.id !== id);
-  plant.photos = (plant.photos || []).filter(p => p.id !== id);
-  saveData(data);
-  renderPlantTab(plant, getGrow(currentGrowId));
+  try {
+    await api('DELETE', `/api/grows/${currentGrowId}/plants/${currentPlantId}/notes/${id}`);
+    plant.notes = plant.notes.filter(n => n.id !== id);
+    renderPlantTab(plant, getGrow(currentGrowId));
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
-function dismissPrompt(key) {
+async function dismissPrompt(key) {
   const plant = getPlant(currentGrowId, currentPlantId);
   if (!plant.dismissedPrompts) plant.dismissedPrompts = [];
   plant.dismissedPrompts.push(key);
-  saveData(data);
+  try {
+    await api('PUT', `/api/grows/${currentGrowId}/plants/${currentPlantId}`, { dismissedPrompts: plant.dismissedPrompts });
+  } catch {}
   const el = document.getElementById('smart-prompt');
   if (el) el.style.display = 'none';
 }
@@ -1257,11 +1256,11 @@ function renderAdviceTab(c, plant) {
       <p class="overview">${advice.overview}</p>
       <div class="advice-section">
         <h4>💡 Tips & Best Practices</h4>
-        <ul>${advice.tips.map(t => `<li>${t}</li>`).join('')}</ul>
+        <ul>${advice.tips.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>
       </div>
       <div class="advice-section warnings">
         <h4>⚠️ Watch Out For</h4>
-        <ul>${advice.warnings.map(w => `<li>${w}</li>`).join('')}</ul>
+        <ul>${advice.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}</ul>
       </div>
     </div>
     <div class="card">
@@ -1270,58 +1269,245 @@ function renderAdviceTab(c, plant) {
         const done = plant.milestones?.includes(m);
         return `<div class="milestone-item ${done ? 'done' : ''}" onclick="toggleMilestone('${m.replace(/'/g, "\\'")}')">
           <div class="milestone-check">${done ? '✓' : ''}</div>
-          <div class="milestone-label">${m}</div>
+          <div class="milestone-label">${escapeHtml(m)}</div>
         </div>`;
       }).join('')}
     </div>`;
 }
 
 // ============ ACTIONS ============
-function changeStage(stageId) {
+async function changeStage(stageId) {
   const plant = getPlant(currentGrowId, currentPlantId);
-  if (plant.stage !== stageId) {
+  if (plant.stage === stageId) return;
+  const stageNote = `Stage changed to ${STAGES[stageIndex(stageId)].icon} ${STAGES[stageIndex(stageId)].name}`;
+  try {
+    await api('PUT', `/api/grows/${currentGrowId}/plants/${currentPlantId}`, { stage: stageId, stageNote });
     plant.stage = stageId;
     plant.milestones = [];
-    plant.notes.push({ id: genId(), text: `Stage changed to ${STAGES[stageIndex(stageId)].icon} ${STAGES[stageIndex(stageId)].name}`, timestamp: Date.now(), stage: stageId });
-    saveData(data); render();
-  }
+    plant.notes.push({ id: genId(), text: stageNote, photo: null, stage: stageId, timestamp: Date.now() });
+    render();
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
-function toggleMilestone(milestone) {
+async function toggleMilestone(milestone) {
   const plant = getPlant(currentGrowId, currentPlantId);
   if (!plant.milestones) plant.milestones = [];
   const idx = plant.milestones.indexOf(milestone);
   if (idx >= 0) plant.milestones.splice(idx, 1);
   else plant.milestones.push(milestone);
-  saveData(data);
-  renderPlantTab(plant, getGrow(currentGrowId));
+  try {
+    await api('PUT', `/api/grows/${currentGrowId}/plants/${currentPlantId}`, { milestones: plant.milestones });
+    renderPlantTab(plant, getGrow(currentGrowId));
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 function confirmDeletePlant(gId, pId) {
   const p = getPlant(gId, pId);
-  showDeleteModal(`Delete "${p.name}"?`, 'This will permanently delete this plant and all its photos and notes.', () => {
-    const g = getGrow(gId); g.plants = g.plants.filter(x => x.id !== pId); saveData(data); goGrow(gId);
+  showDeleteModal(`Delete "${p.name}"?`, 'This will permanently delete this plant and all its photos and notes.', async () => {
+    try {
+      await api('DELETE', `/api/grows/${gId}/plants/${pId}`);
+      const g = getGrow(gId); g.plants = g.plants.filter(x => x.id !== pId);
+      goGrow(gId);
+    } catch (err) { showToast(err.message, 'error'); }
   });
 }
 
 function switchPlantTab(tab) {
   currentPlantTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => {
-    if (tab === 'timeline' && t.textContent.includes('Timeline')) t.classList.add('active');
-    if (tab === 'advice' && t.textContent.includes('Advice')) t.classList.add('active');
+    t.classList.remove('active');
+    if ((tab === 'timeline' && t.textContent.includes('Timeline')) ||
+        (tab === 'advice' && t.textContent.includes('Advice'))) t.classList.add('active');
   });
   renderPlantTab(getPlant(currentGrowId, currentPlantId), getGrow(currentGrowId));
 }
 
+// ============ PROFILE PAGE ============
+function renderProfile(app) {
+  const u = currentUser;
+  selectedAvatar = u.avatar_emoji || '🌱';
+  const totalGrows = data.grows.length;
+  const totalPlants = data.grows.reduce((s, g) => s + g.plants.length, 0);
+  const totalPhotos = data.grows.reduce((s, g) => s + g.plants.reduce((s2, p) => s2 + (p.notes?.filter(n => n.photo).length || 0), 0), 0);
+  const joined = formatDate(parseInt(u.id?.substr(0, 8) || '0', 16) * 1000 || Date.now());
+
+  app.innerHTML = `
+    <div class="fade-in">
+      <div class="page-header">
+        <button class="page-back" onclick="goHome()">←</button>
+        <h2>Profile</h2>
+      </div>
+
+      <div class="card">
+        <div class="profile-hero">
+          <div class="profile-emoji" id="profile-emoji-display">${escapeHtml(selectedAvatar)}</div>
+          <div class="profile-name">${escapeHtml(u.display_name || u.username)}</div>
+          <div class="profile-username">@${escapeHtml(u.username)}</div>
+        </div>
+        <div class="stat-row" style="margin-bottom:0">
+          <div class="stat-box"><div class="stat-value">${totalGrows}</div><div class="stat-label">Grows</div></div>
+          <div class="stat-box"><div class="stat-value">${totalPlants}</div><div class="stat-label">Plants</div></div>
+          <div class="stat-box"><div class="stat-value">${totalPhotos}</div><div class="stat-label">Photos</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Edit Profile</div>
+        <div class="form-group">
+          <label>Display Name</label>
+          <input id="profile-name" value="${escapeHtml(u.display_name || '')}" placeholder="${escapeHtml(u.username)}">
+        </div>
+        <div class="form-group">
+          <label>Bio</label>
+          <textarea id="profile-bio" placeholder="Tell the world about your grows…" rows="3">${escapeHtml(u.bio || '')}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Avatar</label>
+          <div class="avatar-picker">
+            ${AVATAR_EMOJIS.map(e => `<div class="avatar-opt ${selectedAvatar === e ? 'sel' : ''}" onclick="selectAvatar('${e}')">${e}</div>`).join('')}
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>`;
+}
+
+function selectAvatar(emoji) {
+  selectedAvatar = emoji;
+  document.querySelectorAll('.avatar-opt').forEach(el => {
+    el.classList.toggle('sel', el.textContent === emoji);
+  });
+  const display = document.getElementById('profile-emoji-display');
+  if (display) display.textContent = emoji;
+}
+
+async function saveProfile() {
+  const display_name = document.getElementById('profile-name').value.trim();
+  const bio = document.getElementById('profile-bio').value.trim();
+  try {
+    const { user } = await api('PUT', '/api/user/profile', {
+      display_name, bio, avatar_emoji: selectedAvatar
+    });
+    currentUser = user;
+    updateUserDropdown();
+    showToast('Profile saved!', 'success');
+    renderProfile(document.getElementById('app'));
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ============ SETTINGS PAGE ============
+function renderSettings(app) {
+  const u = currentUser;
+  app.innerHTML = `
+    <div class="fade-in">
+      <div class="page-header">
+        <button class="page-back" onclick="goHome()">←</button>
+        <h2>Settings</h2>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Account</div>
+        <div class="form-group">
+          <label>Username</label>
+          <input value="${escapeHtml(u.username)}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input value="${escapeHtml(u.email)}" disabled>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Change Password</div>
+        <div id="pwd-error" class="auth-error"></div>
+        <div class="form-group"><label>Current Password</label><input type="password" id="old-pwd" placeholder="Current password"></div>
+        <div class="form-group"><label>New Password</label><input type="password" id="new-pwd" placeholder="Min 8 characters"></div>
+        <div class="form-group"><label>Confirm New Password</label><input type="password" id="confirm-pwd" placeholder="Repeat new password"></div>
+        <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Data</div>
+        <p style="font-size:13px; color:var(--text3); margin-bottom:14px">Download all your grows, plants, and notes as a JSON file.</p>
+        <button class="btn btn-secondary" onclick="exportData()">⬇️ Export My Data</button>
+      </div>
+
+      <div class="card danger-card">
+        <div class="section-title danger">Danger Zone</div>
+        <p style="font-size:13px; color:var(--text3); margin-bottom:16px">Permanently delete your account and all your data. This cannot be undone.</p>
+        <button class="btn btn-danger" onclick="confirmDeleteAccount()">Delete My Account</button>
+      </div>
+
+      <button class="btn btn-secondary btn-full" onclick="doLogout()" style="margin-top:4px">↩ Sign Out</button>
+    </div>`;
+}
+
+async function changePassword() {
+  const oldPwd = document.getElementById('old-pwd').value;
+  const newPwd = document.getElementById('new-pwd').value;
+  const confirmPwd = document.getElementById('confirm-pwd').value;
+  const errEl = document.getElementById('pwd-error');
+  errEl.style.display = 'none';
+
+  if (!oldPwd || !newPwd || !confirmPwd) {
+    errEl.textContent = 'Please fill in all password fields.'; errEl.style.display = 'block'; return;
+  }
+  if (newPwd !== confirmPwd) {
+    errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return;
+  }
+  try {
+    await api('POST', '/api/user/password', { currentPassword: oldPwd, newPassword: newPwd });
+    showToast('Password updated! Please sign in again.', 'success');
+    setTimeout(() => doLogout(), 1500);
+  } catch (err) {
+    errEl.textContent = err.message; errEl.style.display = 'block';
+  }
+}
+
+function exportData() {
+  const exportObj = {
+    exported_at: new Date().toISOString(),
+    user: { username: currentUser.username, email: currentUser.email },
+    grows: data.grows
+  };
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `potlog-export-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  showToast('Data exported!', 'success');
+}
+
+function confirmDeleteAccount() {
+  showInputModal(
+    'Delete Account',
+    'Enter your password to permanently delete your account and all your data. This cannot be undone.',
+    'Your password',
+    async (password) => {
+      try {
+        await api('DELETE', '/api/user/delete', { password });
+        currentUser = null;
+        data = { grows: [] };
+        document.getElementById('main-app').style.display = 'none';
+        document.getElementById('auth-screen').style.display = '';
+        switchAuthTab('login');
+        showToast('Account deleted.', '');
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+  );
+}
+
 // ============ NAVIGATION ============
-function goHome() { currentView = 'home'; currentGrowId = null; currentPlantId = null; render(); }
-function goGrow(id) { currentView = 'grow'; currentGrowId = id; currentPlantId = null; render(); }
-function goPlant(gId, pId) { currentView = 'plant'; currentGrowId = gId; currentPlantId = pId; currentPlantTab = 'timeline'; render(); }
+function goHome() { currentView = 'home'; currentGrowId = null; currentPlantId = null; render(); window.scrollTo(0,0); }
+function goGrow(id) { currentView = 'grow'; currentGrowId = id; currentPlantId = null; render(); window.scrollTo(0,0); }
+function goPlant(gId, pId) { currentView = 'plant'; currentGrowId = gId; currentPlantId = pId; currentPlantTab = 'timeline'; render(); window.scrollTo(0,0); }
+function goProfile() { currentView = 'profile'; render(); window.scrollTo(0,0); }
+function goSettings() { currentView = 'settings'; render(); window.scrollTo(0,0); }
 
 // ============ MODALS ============
 function openLightbox(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').style.display = 'flex'; }
 function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+
 function showDeleteModal(title, msg, onConfirm) {
   document.getElementById('delete-title').textContent = title;
   document.getElementById('delete-msg').textContent = msg;
@@ -1329,9 +1515,51 @@ function showDeleteModal(title, msg, onConfirm) {
   document.getElementById('delete-confirm').onclick = () => { closeDeleteModal(); onConfirm(); };
 }
 function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLightbox(); closeDeleteModal(); } });
 
-render();
+function showInputModal(title, msg, label, onConfirm) {
+  document.getElementById('input-modal-title').textContent = title;
+  document.getElementById('input-modal-msg').textContent = msg;
+  document.getElementById('input-modal-label').textContent = label;
+  document.getElementById('input-modal-field').value = '';
+  document.getElementById('input-modal').style.display = 'flex';
+  document.getElementById('input-modal-confirm').onclick = () => {
+    const val = document.getElementById('input-modal-field').value;
+    closeInputModal();
+    onConfirm(val);
+  };
+}
+function closeInputModal() { document.getElementById('input-modal').style.display = 'none'; }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeLightbox(); closeDeleteModal(); closeInputModal(); }
+});
+
+// Enter key on auth forms
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('login-form')?.style.display !== 'none' &&
+        document.getElementById('auth-screen')?.style.display !== 'none') doLogin();
+    else if (document.getElementById('register-form')?.style.display !== 'none' &&
+             document.getElementById('auth-screen')?.style.display !== 'none') doRegister();
+  }
+});
+
+// ============ INIT ============
+async function init() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'none';
+
+  try {
+    const { user } = await api('GET', '/api/auth/me');
+    currentUser = user;
+    await loadAllData();
+    showApp();
+  } catch {
+    document.getElementById('auth-screen').style.display = '';
+  }
+}
+
+init();
 </script>
 </body>
 </html>

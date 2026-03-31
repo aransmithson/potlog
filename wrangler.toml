@@ -1,0 +1,14 @@
+name = "potlog"
+compatibility_date = "2024-09-23"
+
+# Local dev: wrangler pages dev . --d1=DB --r2=R2
+# Deploy:    wrangler pages deploy .
+
+[[d1_databases]]
+binding = "DB"
+database_name = "potlog-db"
+database_id = "9a475e90-7a62-4d9d-aa36-c43d548df1f6"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "potlog-photos"
