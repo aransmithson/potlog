@@ -1,4 +1,4 @@
-import { hashPassword, genId, json, sessionCookie } from '../../_shared/auth.js';
+import { hashPassword, genId, json, sessionCookie, isValidEmail, isValidUsername, LIMITS } from '../../_shared/auth.js';
 
 export async function onRequestPost({ request, env }) {
   try {
@@ -7,14 +7,17 @@ export async function onRequestPost({ request, env }) {
     if (!username || !email || !password)
       return json({ error: 'Username, email and password are required' }, 400);
 
-    if (username.length < 3)
-      return json({ error: 'Username must be at least 3 characters' }, 400);
+    if (!isValidUsername(username))
+      return json({ error: 'Username must be 3-30 characters: letters, numbers and underscores only' }, 400);
 
-    if (password.length < 8)
+    if (!isValidEmail(email))
+      return json({ error: 'Please enter a valid email address' }, 400);
+
+    if (typeof password !== 'string' || password.length < 8)
       return json({ error: 'Password must be at least 8 characters' }, 400);
 
-    if (!/^[a-zA-Z0-9_]+$/.test(username))
-      return json({ error: 'Username can only contain letters, numbers and underscores' }, 400);
+    if (password.length > LIMITS.password)
+      return json({ error: 'Password is too long' }, 400);
 
     // Check existing
     const existing = await env.DB.prepare(
@@ -30,7 +33,7 @@ export async function onRequestPost({ request, env }) {
 
     await env.DB.prepare(
       'INSERT INTO users (id, username, email, password_hash, salt, display_name, avatar_emoji, bio, settings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, username.toLowerCase(), email.toLowerCase(), passwordHash, salt, username, '🌱', '', '{}', now).run();
+    ).bind(id, username.toLowerCase(), email.toLowerCase(), passwordHash, salt, username.slice(0, LIMITS.displayName), '🌱', '', '{}', now).run();
 
     // Create session
     const sessionId = genId() + genId();
@@ -40,7 +43,7 @@ export async function onRequestPost({ request, env }) {
     ).bind(sessionId, id, expires, now).run();
 
     return json(
-      { user: { id, username: username.toLowerCase(), email: email.toLowerCase(), display_name: username, avatar_emoji: '🌱', bio: '', settings: '{}' } },
+      { user: { id, username: username.toLowerCase(), email: email.toLowerCase(), display_name: username.slice(0, LIMITS.displayName), avatar_emoji: '🌱', bio: '', settings: '{}' } },
       201,
       { 'Set-Cookie': sessionCookie(sessionId) }
     );

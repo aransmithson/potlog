@@ -1,10 +1,16 @@
-import { hashPassword, genId, json, sessionCookie } from '../../_shared/auth.js';
+import { hashPassword, genId, json, sessionCookie, isValidEmail, LIMITS } from '../../_shared/auth.js';
 
 export async function onRequestPost({ request, env }) {
   try {
     const { email, password } = await request.json();
     if (!email || !password)
       return json({ error: 'Email and password are required' }, 400);
+
+    if (!isValidEmail(email))
+      return json({ error: 'Please enter a valid email address' }, 400);
+
+    if (typeof password !== 'string' || password.length > LIMITS.password)
+      return json({ error: 'Invalid credentials' }, 401);
 
     const user = await env.DB.prepare(
       'SELECT * FROM users WHERE email = ?'
