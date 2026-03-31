@@ -464,6 +464,38 @@ input, textarea, select { font-family:inherit; }
 }
 .toast.success { border-color: rgba(52,211,153,0.3); color: var(--accent); }
 .toast.error { border-color: rgba(251,113,133,0.3); color: var(--danger); }
+
+/* ===== AUTH LINK ===== */
+.auth-link {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text3);
+}
+.auth-link button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 0;
+  font: inherit;
+}
+.auth-link button:hover {
+  color: var(--mint);
+}
+.auth-success {
+  background: rgba(52,211,153,0.15);
+  border: 1px solid rgba(52,211,153,0.3);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: none;
+  text-align: center;
+}
 </style>
 </head>
 <body>
@@ -480,6 +512,7 @@ input, textarea, select { font-family:inherit; }
         <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</div>
         <div class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</div>
       </div>
+      <div class="auth-success" id="auth-success"></div>
       <div class="auth-error" id="auth-error"></div>
 
       <!-- Login Form -->
@@ -493,6 +526,9 @@ input, textarea, select { font-family:inherit; }
           <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
         </div>
         <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Sign In</button>
+        <div class="auth-link">
+          <button onclick="showForgotForm()">Forgot password?</button>
+        </div>
       </div>
 
       <!-- Register Form -->
@@ -516,6 +552,34 @@ input, textarea, select { font-family:inherit; }
           </div>
         </div>
         <button class="btn btn-primary btn-full" id="register-btn" onclick="doRegister()">Create Account</button>
+      </div>
+
+      <!-- Forgot Password Form -->
+      <div id="forgot-form" style="display:none">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <button class="btn btn-primary btn-full" id="forgot-btn" onclick="doForgotPassword()">Send Reset Link</button>
+        <div class="auth-link">
+          <button onclick="switchAuthTab('login')">Back to Sign In</button>
+        </div>
+      </div>
+
+      <!-- Reset Password Form -->
+      <div id="reset-form" style="display:none">
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="reset-password" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" id="reset-confirm" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary btn-full" id="reset-btn" onclick="doResetPassword()">Reset Password</button>
+        <div class="auth-link">
+          <button onclick="switchAuthTab('login')">Back to Sign In</button>
+        </div>
       </div>
     </div>
   </div>
@@ -684,6 +748,7 @@ let data = { grows: [] };
 let currentView = 'home', currentGrowId = null, currentPlantId = null, currentPlantTab = 'timeline';
 let pendingPhoto = null;
 let selectedAvatar = null;
+let resetToken = null;
 
 // ============ API ============
 async function api(method, path, body) {
@@ -723,7 +788,7 @@ function formatRelative(ts) {
 }
 function daysSince(ts) { return Math.floor((Date.now() - ts) / 86400000); }
 function getGrow(id) { return data.grows.find(g => g.id === id); }
-function getPlant(gId, pId) { const g = getGrow(gId); return g ? g.plants.find(p => p.id === pId) : null; }
+function getPlant(gId, pId) { const g = getGrow(gId); return g && g.plants ? g.plants.find(p => p.id === pId) : null; }
 function stageIndex(sid) { return STAGES.findIndex(s => s.id === sid); }
 function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
@@ -761,15 +826,79 @@ function getTimeline(plant) {
 function switchAuthTab(tab) {
   document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
   document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('forgot-form').style.display = tab === 'forgot' ? '' : 'none';
+  document.getElementById('reset-form').style.display = tab === 'reset' ? '' : 'none';
   document.getElementById('tab-login').className = 'auth-tab' + (tab === 'login' ? ' active' : '');
   document.getElementById('tab-register').className = 'auth-tab' + (tab === 'register' ? ' active' : '');
   document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-success').style.display = 'none';
 }
 
 function showAuthError(msg) {
   const el = document.getElementById('auth-error');
   el.textContent = msg;
   el.style.display = 'block';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('auth-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function showForgotForm() {
+  switchAuthTab('forgot');
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) return showAuthError('Please enter your email address.');
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    await api('POST', '/api/auth/forgot', { email });
+    showAuthSuccess('If an account exists with this email, a reset link has been sent.');
+    document.getElementById('forgot-email').value = '';
+    setTimeout(() => {
+      switchAuthTab('login');
+      showAuthSuccess('');
+    }, 2000);
+  } catch (err) {
+    showAuthError(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Reset Link';
+  }
+}
+
+async function doResetPassword() {
+  const newPassword = document.getElementById('reset-password').value;
+  const confirm = document.getElementById('reset-confirm').value;
+  if (!newPassword || !confirm) return showAuthError('Please fill in both password fields.');
+  if (newPassword !== confirm) return showAuthError('Passwords do not match.');
+  if (!resetToken) return showAuthError('Reset token not found.');
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true;
+  btn.textContent = 'Resetting…';
+  try {
+    await api('POST', '/api/auth/reset', { token: resetToken, newPassword });
+    showAuthSuccess('Password reset successfully! Redirecting to sign in…');
+    setTimeout(() => {
+      resetToken = null;
+      switchAuthTab('login');
+      showAuthSuccess('');
+      document.getElementById('reset-password').value = '';
+      document.getElementById('reset-confirm').value = '';
+    }, 2000);
+  } catch (err) {
+    showAuthError(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Reset Password';
+  }
 }
 
 async function doLogin() {
@@ -781,7 +910,7 @@ async function doLogin() {
   try {
     const { user } = await api('POST', '/api/auth/login', { email, password });
     currentUser = user;
-    await loadAllData();
+    await loadGrowsList();
     showApp();
   } catch (err) {
     showAuthError(err.message);
@@ -847,7 +976,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.header-right')) closeDropdown();
 });
 
-async function loadAllData() {
+async function loadGrowsList() {
   const { grows } = await api('GET', '/api/grows');
   data.grows = grows;
 }
@@ -887,9 +1016,9 @@ function renderHome(app) {
       </div><div id="new-grow-form"></div>`;
     return;
   }
-  const totalPlants = data.grows.reduce((s, g) => s + g.plants.length, 0);
+  const totalPlants = data.grows.reduce((s, g) => s + (g.plantCount || 0), 0);
   const active = data.grows.filter(g => !g.completed).length;
-  const photos = data.grows.reduce((s, g) => s + g.plants.reduce((s2, p) => s2 + (p.notes?.filter(n => n.photo)?.length || 0), 0), 0);
+  const photos = data.grows.reduce((s, g) => s + (g.photoCount || 0), 0);
 
   app.innerHTML = `
     <div class="fade-in">
@@ -905,7 +1034,7 @@ function renderHome(app) {
       <div id="new-grow-form"></div>
       <div class="card-grid">
         ${data.grows.map(g => {
-          const pc = g.plants.length, age = daysSince(g.createdAt);
+          const age = daysSince(g.createdAt);
           return `<div class="card interactive" onclick="goGrow('${g.id}')">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px">
               <div style="min-width:0">
@@ -915,7 +1044,7 @@ function renderHome(app) {
               <span class="badge ${g.completed ? 'badge-done' : 'badge-active'}">${g.completed ? 'Done' : 'Active'}</span>
             </div>
             <div style="margin-top:14px; display:flex; gap:14px; font-size:12px; color:var(--text3); font-weight:500">
-              <span>🌿 ${pc} plant${pc !== 1 ? 's' : ''}</span><span>📅 Day ${age}</span><span>${escapeHtml(g.environment)}</span>
+              <span>🌿 ${g.plantCount || 0} plant${(g.plantCount || 0) !== 1 ? 's' : ''}</span><span>📅 Day ${age}</span><span>${escapeHtml(g.environment)}</span>
             </div>
           </div>`;
         }).join('')}
@@ -957,6 +1086,10 @@ async function createGrow() {
       medium: document.getElementById('ng-medium').value,
       environment: document.getElementById('ng-env').value
     });
+    grow.plants = [];
+    grow.plantCount = 0;
+    grow.noteCount = 0;
+    grow.photoCount = 0;
     data.grows.unshift(grow);
     goGrow(grow.id);
   } catch (err) { showToast(err.message, 'error'); }
@@ -981,21 +1114,19 @@ function renderGrow(app) {
         </div>
       </div>
       <div id="add-plant-form"></div>
-      ${grow.plants.length === 0 ? `
+      ${!grow.plants || grow.plants.length === 0 ? `
         <div class="empty-state"><div class="empty-icon">🪴</div><h3>No plants yet</h3><p>Add your first plant to start tracking this grow.</p></div>
       ` : `<div class="card-grid">${grow.plants.map(p => {
         const si = stageIndex(p.stage), stage = STAGES[si];
-        const lastPhoto = (p.notes || []).slice().reverse().find(n => n.photo);
-        const entryCount = (p.notes || []).length;
         return `<div class="card interactive" onclick="goPlant('${grow.id}','${p.id}')">
-          ${lastPhoto ? `<div class="card-cover"><img src="${lastPhoto.photo}" alt="" loading="lazy"></div>` : ''}
+          ${p.lastPhoto ? `<div class="card-cover"><img src="${p.lastPhoto}" alt="" loading="lazy"></div>` : ''}
           <div style="font-size:17px; font-weight:700">${escapeHtml(p.name)}</div>
           <div style="font-size:13px; color:var(--text3); margin-top:3px">${escapeHtml(p.strainOverride || grow.strain || 'Unknown strain')}</div>
           <div class="stage-dots" style="margin-top:10px">
             ${STAGES.map((s, i) => `<div class="stage-dot ${i < si ? 'done' : i === si ? 'current' : 'future'}" title="${s.name}"></div>`).join('')}
             <span style="font-size:12px; color:var(--accent); margin-left:8px; font-weight:600">${stage.icon} ${stage.name}</span>
           </div>
-          <div style="margin-top:10px; font-size:12px; color:var(--text4); font-weight:500">📋 ${entryCount} entr${entryCount !== 1 ? 'ies' : 'y'}</div>
+          <div style="margin-top:10px; font-size:12px; color:var(--text4); font-weight:500">📋 ${p.noteCount || 0} entr${(p.noteCount || 0) !== 1 ? 'ies' : 'y'}</div>
         </div>`;
       }).join('')}</div>`}
     </div>`;
@@ -1030,8 +1161,15 @@ async function addPlant() {
       strainOverride: document.getElementById('np-strain').value.trim(),
       stage: document.getElementById('np-stage').value
     });
+    plant.notes = [];
+    plant.noteCount = 0;
+    plant.photoCount = 0;
+    plant.lastPhoto = null;
     const grow = getGrow(currentGrowId);
+    if (!grow.plants) grow.plants = [];
     grow.plants.push(plant);
+    if (grow.plantCount === undefined) grow.plantCount = 0;
+    grow.plantCount++;
     render();
   } catch (err) { showToast(err.message, 'error'); }
 }
@@ -1180,7 +1318,14 @@ function handleComposePhoto(event) {
       if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      pendingPhoto = canvas.toDataURL('image/jpeg', 0.7);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      const byteLen = Math.floor(dataUrl.length * 3 / 4);
+      if (byteLen > 409600) {
+        showToast('Photo is too large (max 400KB). Try a smaller image.', 'error');
+        document.getElementById('compose-photo').value = '';
+        return;
+      }
+      pendingPhoto = dataUrl;
       const preview = document.getElementById('compose-preview');
       preview.style.display = 'inline-block';
       preview.innerHTML = `<img src="${pendingPhoto}" alt=""><button class="compose-preview-remove" onclick="removePendingPhoto()">&times;</button>`;
@@ -1208,9 +1353,22 @@ async function submitEntry() {
     const { note } = await api('POST', `/api/grows/${currentGrowId}/plants/${currentPlantId}/notes`, {
       text: text || '', photo: pendingPhoto || null, stage: plant.stage, timestamp: Date.now()
     });
+    if (!plant.notes) plant.notes = [];
     plant.notes.push(note);
+    if (plant.noteCount === undefined) plant.noteCount = 0;
+    plant.noteCount++;
+    if (note.photo) {
+      if (plant.photoCount === undefined) plant.photoCount = 0;
+      plant.photoCount++;
+      plant.lastPhoto = note.photo;
+    }
+    const grow = getGrow(currentGrowId);
+    if (grow.noteCount === undefined) grow.noteCount = 0;
+    if (grow.photoCount === undefined) grow.photoCount = 0;
+    grow.noteCount++;
+    if (note.photo) grow.photoCount++;
     pendingPhoto = null;
-    renderPlantTab(plant, getGrow(currentGrowId));
+    renderPlantTab(plant, grow);
   } catch (err) {
     showToast(err.message, 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Post'; }
@@ -1220,9 +1378,22 @@ async function submitEntry() {
 async function deleteEntry(id) {
   const plant = getPlant(currentGrowId, currentPlantId);
   try {
+    const note = plant.notes.find(n => n.id === id);
     await api('DELETE', `/api/grows/${currentGrowId}/plants/${currentPlantId}/notes/${id}`);
     plant.notes = plant.notes.filter(n => n.id !== id);
-    renderPlantTab(plant, getGrow(currentGrowId));
+    if (plant.noteCount === undefined) plant.noteCount = 0;
+    plant.noteCount = Math.max(0, plant.noteCount - 1);
+    if (note?.photo) {
+      if (plant.photoCount === undefined) plant.photoCount = 0;
+      plant.photoCount = Math.max(0, plant.photoCount - 1);
+      plant.lastPhoto = plant.notes.slice().reverse().find(n => n.photo)?.photo || null;
+    }
+    const grow = getGrow(currentGrowId);
+    if (grow.noteCount === undefined) grow.noteCount = 0;
+    if (grow.photoCount === undefined) grow.photoCount = 0;
+    grow.noteCount = Math.max(0, grow.noteCount - 1);
+    if (note?.photo) grow.photoCount = Math.max(0, grow.photoCount - 1);
+    renderPlantTab(plant, grow);
   } catch (err) { showToast(err.message, 'error'); }
 }
 
@@ -1274,7 +1445,13 @@ async function changeStage(stageId) {
     await api('PUT', `/api/grows/${currentGrowId}/plants/${currentPlantId}`, { stage: stageId, stageNote });
     plant.stage = stageId;
     plant.milestones = [];
+    if (!plant.notes) plant.notes = [];
     plant.notes.push({ id: genId(), text: stageNote, photo: null, stage: stageId, timestamp: Date.now() });
+    if (plant.noteCount === undefined) plant.noteCount = 0;
+    plant.noteCount++;
+    const grow = getGrow(currentGrowId);
+    if (grow.noteCount === undefined) grow.noteCount = 0;
+    grow.noteCount++;
     render();
   } catch (err) { showToast(err.message, 'error'); }
 }
@@ -1296,7 +1473,19 @@ function confirmDeletePlant(gId, pId) {
   showDeleteModal(`Delete "${p.name}"?`, 'This will permanently delete this plant and all its photos and notes.', async () => {
     try {
       await api('DELETE', `/api/grows/${gId}/plants/${pId}`);
-      const g = getGrow(gId); g.plants = g.plants.filter(x => x.id !== pId);
+      const g = getGrow(gId);
+      if (g.plants) {
+        const p = g.plants.find(x => x.id === pId);
+        if (p) {
+          if (g.plantCount === undefined) g.plantCount = 0;
+          if (g.noteCount === undefined) g.noteCount = 0;
+          if (g.photoCount === undefined) g.photoCount = 0;
+          g.plantCount = Math.max(0, g.plantCount - 1);
+          g.noteCount = Math.max(0, g.noteCount - (p.noteCount || 0));
+          g.photoCount = Math.max(0, g.photoCount - (p.photoCount || 0));
+        }
+        g.plants = g.plants.filter(x => x.id !== pId);
+      }
       goGrow(gId);
     } catch (err) { showToast(err.message, 'error'); }
   });
@@ -1317,8 +1506,8 @@ function renderProfile(app) {
   const u = currentUser;
   selectedAvatar = u.avatar_emoji || '🌱';
   const totalGrows = data.grows.length;
-  const totalPlants = data.grows.reduce((s, g) => s + g.plants.length, 0);
-  const totalPhotos = data.grows.reduce((s, g) => s + g.plants.reduce((s2, p) => s2 + (p.notes?.filter(n => n.photo).length || 0), 0), 0);
+  const totalPlants = data.grows.reduce((s, g) => s + (g.plantCount || 0), 0);
+  const totalPhotos = data.grows.reduce((s, g) => s + (g.photoCount || 0), 0);
   const joined = formatDate(parseInt(u.id?.substr(0, 8) || '0', 16) * 1000 || Date.now());
 
   app.innerHTML = `
@@ -1454,18 +1643,24 @@ async function changePassword() {
   }
 }
 
-function exportData() {
-  const exportObj = {
-    exported_at: new Date().toISOString(),
-    user: { username: currentUser.username, email: currentUser.email },
-    grows: data.grows
-  };
-  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `potlog-export-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  showToast('Data exported!', 'success');
+async function exportData() {
+  try {
+    showToast('Preparing export…');
+    const { grows } = await api('GET', '/api/grows?full=1');
+    const exportObj = {
+      exported_at: new Date().toISOString(),
+      user: { username: currentUser.username, email: currentUser.email },
+      grows
+    };
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `potlog-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    showToast('Data exported!', 'success');
+  } catch (err) {
+    showToast('Export failed: ' + err.message, 'error');
+  }
 }
 
 function confirmDeleteAccount() {
@@ -1488,9 +1683,38 @@ function confirmDeleteAccount() {
 }
 
 // ============ NAVIGATION ============
-function goHome() { currentView = 'home'; currentGrowId = null; currentPlantId = null; render(); window.scrollTo(0,0); }
-function goGrow(id) { currentView = 'grow'; currentGrowId = id; currentPlantId = null; render(); window.scrollTo(0,0); }
-function goPlant(gId, pId) { currentView = 'plant'; currentGrowId = gId; currentPlantId = pId; currentPlantTab = 'timeline'; render(); window.scrollTo(0,0); }
+async function goHome() { currentView = 'home'; currentGrowId = null; currentPlantId = null; render(); window.scrollTo(0,0); }
+async function goGrow(id) {
+  currentView = 'grow';
+  currentGrowId = id;
+  currentPlantId = null;
+  const grow = getGrow(id);
+  if (grow && !grow.plants) {
+    try {
+      const result = await api('GET', `/api/grows/${id}`);
+      grow.plants = result.plants;
+      Object.assign(grow, result.grow);
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+  render();
+  window.scrollTo(0,0);
+}
+async function goPlant(gId, pId) {
+  currentView = 'plant';
+  currentGrowId = gId;
+  currentPlantId = pId;
+  currentPlantTab = 'timeline';
+  const plant = getPlant(gId, pId);
+  if (plant && !plant.notes) {
+    try {
+      const result = await api('GET', `/api/grows/${gId}/plants/${pId}`);
+      plant.notes = result.notes;
+      Object.assign(plant, result.plant);
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+  render();
+  window.scrollTo(0,0);
+}
 function goProfile() { currentView = 'profile'; render(); window.scrollTo(0,0); }
 function goSettings() { currentView = 'settings'; render(); window.scrollTo(0,0); }
 
@@ -1531,6 +1755,10 @@ document.addEventListener('keydown', e => {
         document.getElementById('auth-screen')?.style.display !== 'none') doLogin();
     else if (document.getElementById('register-form')?.style.display !== 'none' &&
              document.getElementById('auth-screen')?.style.display !== 'none') doRegister();
+    else if (document.getElementById('forgot-form')?.style.display !== 'none' &&
+             document.getElementById('auth-screen')?.style.display !== 'none') doForgotPassword();
+    else if (document.getElementById('reset-form')?.style.display !== 'none' &&
+             document.getElementById('auth-screen')?.style.display !== 'none') doResetPassword();
   }
 });
 
@@ -1539,10 +1767,21 @@ async function init() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'none';
 
+  // Check for reset token in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('reset');
+  if (token) {
+    resetToken = token;
+    switchAuthTab('reset');
+    document.getElementById('auth-screen').style.display = '';
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return;
+  }
+
   try {
     const { user } = await api('GET', '/api/auth/me');
     currentUser = user;
-    await loadAllData();
+    await loadGrowsList();
     showApp();
   } catch {
     document.getElementById('auth-screen').style.display = '';

@@ -52,7 +52,18 @@ CREATE TABLE IF NOT EXISTS notes (
   timestamp INTEGER NOT NULL
 );
 
+-- Password reset tokens
+CREATE TABLE IF NOT EXISTS password_resets (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_grows_user ON grows(user_id);
 CREATE INDEX IF NOT EXISTS idx_plants_grow ON plants(grow_id);
 CREATE INDEX IF NOT EXISTS idx_notes_plant ON notes(plant_id);
+CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
