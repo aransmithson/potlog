@@ -1103,7 +1103,10 @@ function renderGrow(app) {
   app.innerHTML = `
     <div class="fade-in">
       <div style="margin-bottom:16px">
-        <h2 style="font-size:22px; font-weight:800; letter-spacing:-0.3px">${escapeHtml(grow.name)}</h2>
+        <div class="page-header" style="margin-bottom:10px">
+          <button class="page-back" onclick="goHome()">←</button>
+          <h2 style="font-size:22px; font-weight:800; letter-spacing:-0.3px">${escapeHtml(grow.name)}</h2>
+        </div>
         <div style="font-size:13px; color:var(--text3); margin-top:4px; display:flex; gap:10px; flex-wrap:wrap">
           <span>${escapeHtml(grow.strain || 'Unknown strain')}</span><span>·</span><span>${escapeHtml(grow.medium)}</span><span>·</span><span>${escapeHtml(grow.environment)}</span><span>·</span><span>Day ${age}</span>
         </div>
@@ -1126,7 +1129,7 @@ function renderGrow(app) {
             ${STAGES.map((s, i) => `<div class="stage-dot ${i < si ? 'done' : i === si ? 'current' : 'future'}" title="${s.name}"></div>`).join('')}
             <span style="font-size:12px; color:var(--accent); margin-left:8px; font-weight:600">${stage.icon} ${stage.name}</span>
           </div>
-          <div style="margin-top:10px; font-size:12px; color:var(--text4); font-weight:500">📋 ${p.noteCount || 0} entr${(p.noteCount || 0) !== 1 ? 'ies' : 'y'}</div>
+          <div style="margin-top:10px; font-size:12px; color:var(--text4); font-weight:500">📋 ${(p.notes ? p.notes.filter(n => !n.text?.startsWith('Stage changed to')).length : (p.noteCount || 0))} entr${((p.notes ? p.notes.filter(n => !n.text?.startsWith('Stage changed to')).length : (p.noteCount || 0))) !== 1 ? 'ies' : 'y'}</div>
         </div>`;
       }).join('')}</div>`}
     </div>`;
@@ -1204,6 +1207,10 @@ function renderPlant(app) {
   app.innerHTML = `
     <div class="fade-in">
       <div class="plant-hero">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px">
+          <button class="page-back" onclick="goGrow('${grow.id}')">←</button>
+          <span style="font-size:13px; color:var(--text3); font-weight:500">${escapeHtml(grow.name)}</span>
+        </div>
         <div style="display:flex; justify-content:space-between; align-items:flex-start">
           <div>
             <div class="plant-name">${escapeHtml(plant.name)}</div>
@@ -1710,6 +1717,8 @@ async function goPlant(gId, pId) {
       const result = await api('GET', `/api/grows/${gId}/plants/${pId}`);
       plant.notes = result.notes;
       Object.assign(plant, result.plant);
+      // Recalculate noteCount from actual notes (includes photo-only entries)
+      plant.noteCount = (plant.notes || []).filter(n => !n.text?.startsWith('Stage changed to')).length;
     } catch (err) { showToast(err.message, 'error'); }
   }
   render();
