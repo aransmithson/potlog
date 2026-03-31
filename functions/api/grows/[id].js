@@ -1,9 +1,35 @@
-import { requireAuth, json, deleteR2Photos } from '../../_shared/auth.js';
+import { requireAuth, json, deleteR2Photos, getPlantsList, sanitise, isValidMedium, isValidEnvironment, LIMITS } from '../../_shared/auth.js';
 
 async function ownsGrow(db, userId, growId) {
   const g = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
     .bind(growId, userId).first();
   return !!g;
+}
+
+// GET /api/grows/:id — Returns plants list for this grow (no notes)
+export async function onRequestGet({ request, env, params }) {
+  const user = await requireAuth(request, env.DB);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+
+  const plants = await getPlantsList(env.DB, user.id, params.id);
+  if (plants === null) return json({ error: 'Not found' }, 404);
+
+  // Also return grow metadata
+  const grow = await env.DB.prepare('SELECT * FROM grows WHERE id = ? AND user_id = ?')
+    .bind(params.id, user.id).first();
+
+  return json({
+    grow: {
+      id: grow.id,
+      name: grow.name,
+      strain: grow.strain || '',
+      medium: grow.medium,
+      environment: grow.environment,
+      completed: !!grow.completed,
+      createdAt: grow.created_at,
+    },
+    plants
+  });
 }
 
 export async function onRequestPut({ request, env, params }) {
@@ -16,11 +42,25 @@ export async function onRequestPut({ request, env, params }) {
   const sets = [];
   const vals = [];
 
-  if (body.name !== undefined)        { sets.push('name = ?');        vals.push(body.name.trim()); }
-  if (body.strain !== undefined)      { sets.push('strain = ?');      vals.push(body.strain); }
-  if (body.medium !== undefined)      { sets.push('medium = ?');      vals.push(body.medium); }
-  if (body.environment !== undefined) { sets.push('environment = ?'); vals.push(body.environment); }
-  if (body.completed !== undefined)   { sets.push('completed = ?');   vals.push(body.completed ? 1 : 0); }
+  if (body.name !== undefined) {
+    const name = sanitise(body.name, LIMITS.name);
+    if (!name) return json({ error: 'Grow name cannot be empty' }, 400);
+    sets.push('name = ?'); vals.push(name);
+  }
+  if (body.strain !== undefined) {
+    sets.push('strain = ?'); vals.push(sanitise(body.strain, LIMITS.strain) || '');
+  }
+  if (body.medium !== undefined) {
+    if (!isValidMedium(body.medium)) return json({ error: 'Invalid growing medium' }, 400);
+    sets.push('medium = ?'); vals.push(body.medium);
+  }
+  if (body.environment !== undefined) {
+    if (!isValidEnvironment(body.environment)) return json({ error: 'Invalid environment' }, 400);
+    sets.push('environment = ?'); vals.push(body.environment);
+  }
+  if (body.completed !== undefined) {
+    sets.push('completed = ?'); vals.push(body.completed ? 1 : 0);
+  }
 
   if (sets.length) {
     vals.push(params.id);
@@ -37,7 +77,6 @@ export async function onRequestDelete({ request, env, params }) {
   if (!await ownsGrow(env.DB, user.id, params.id))
     return json({ error: 'Not found' }, 404);
 
-  // Collect all R2 keys before deleting from D1
   const plants = await env.DB.prepare('SELECT id FROM plants WHERE grow_id = ?')
     .bind(params.id).all();
 

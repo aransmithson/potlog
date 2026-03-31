@@ -1,10 +1,19 @@
-import { requireAuth, json, genId, getFullGrows } from '../../_shared/auth.js';
+import { requireAuth, json, genId, getGrowsList, getFullGrows, sanitise, isValidMedium, isValidEnvironment, LIMITS } from '../../_shared/auth.js';
 
+// GET /api/grows — Returns grows list with counts (no nested notes)
+// Use ?full=1 for legacy full export
 export async function onRequestGet({ request, env }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
 
-  const grows = await getFullGrows(env.DB, user.id);
+  const url = new URL(request.url);
+  if (url.searchParams.get('full') === '1') {
+    // Full export (for data export feature)
+    const grows = await getFullGrows(env.DB, user.id);
+    return json({ grows });
+  }
+
+  const grows = await getGrowsList(env.DB, user.id);
   return json({ grows });
 }
 
@@ -12,20 +21,26 @@ export async function onRequestPost({ request, env }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
 
-  const { name, strain, medium, environment } = await request.json();
-  if (!name) return json({ error: 'Grow name is required' }, 400);
+  const body = await request.json();
+  const name = sanitise(body.name, LIMITS.name);
+  if (!name) return json({ error: 'Grow name is required (max 100 chars)' }, 400);
+
+  const strain = sanitise(body.strain, LIMITS.strain) || '';
+  const medium = isValidMedium(body.medium) ? body.medium : 'Soil';
+  const environment = isValidEnvironment(body.environment) ? body.environment : 'Indoor';
 
   const id = genId();
   const now = Date.now();
 
   await env.DB.prepare(
     'INSERT INTO grows (id, user_id, name, strain, medium, environment, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)'
-  ).bind(id, user.id, name.trim(), strain || '', medium || 'Soil', environment || 'Indoor', now).run();
+  ).bind(id, user.id, name, strain, medium, environment, now).run();
 
   return json({
     grow: {
-      id, name: name.trim(), strain: strain || '', medium: medium || 'Soil',
-      environment: environment || 'Indoor', completed: false, createdAt: now, plants: []
+      id, name, strain, medium, environment,
+      completed: false, createdAt: now,
+      plantCount: 0, noteCount: 0, photoCount: 0
     }
   }, 201);
 }
