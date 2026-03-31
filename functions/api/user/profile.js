@@ -1,4 +1,4 @@
-import { requireAuth, json } from '../../_shared/auth.js';
+import { requireAuth, json, sanitise, LIMITS } from '../../_shared/auth.js';
 
 export async function onRequestGet({ request, env }) {
   const user = await requireAuth(request, env.DB);
@@ -14,10 +14,23 @@ export async function onRequestPut({ request, env }) {
   const sets = [];
   const vals = [];
 
-  if (body.display_name !== undefined) { sets.push('display_name = ?'); vals.push(body.display_name.trim()); }
-  if (body.avatar_emoji !== undefined) { sets.push('avatar_emoji = ?'); vals.push(body.avatar_emoji); }
-  if (body.bio !== undefined)          { sets.push('bio = ?');          vals.push(body.bio.trim()); }
-  if (body.settings !== undefined)     { sets.push('settings = ?');     vals.push(typeof body.settings === 'string' ? body.settings : JSON.stringify(body.settings)); }
+  if (body.display_name !== undefined) {
+    const dn = sanitise(body.display_name, LIMITS.displayName) || '';
+    sets.push('display_name = ?'); vals.push(dn);
+  }
+  if (body.avatar_emoji !== undefined) {
+    const emoji = sanitise(body.avatar_emoji, LIMITS.avatarEmoji) || '🌱';
+    sets.push('avatar_emoji = ?'); vals.push(emoji);
+  }
+  if (body.bio !== undefined) {
+    const bio = sanitise(body.bio, LIMITS.bio) || '';
+    sets.push('bio = ?'); vals.push(bio);
+  }
+  if (body.settings !== undefined) {
+    const s = typeof body.settings === 'string' ? body.settings : JSON.stringify(body.settings);
+    if (s.length > 2000) return json({ error: 'Settings data too large' }, 400);
+    sets.push('settings = ?'); vals.push(s);
+  }
 
   if (!sets.length) return json({ error: 'Nothing to update' }, 400);
 
