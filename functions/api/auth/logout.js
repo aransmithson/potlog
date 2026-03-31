@@ -1,4 +1,4 @@
-import { parseCookies, json, clearCookie } from '../../../_shared/auth.js';
+import { parseCookies, json, clearCookie } from '../../_shared/auth.js';
 
 export async function onRequestPost({ request, env }) {
   const cookies = parseCookies(request.headers.get('Cookie') || '');
