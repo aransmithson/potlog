@@ -438,6 +438,87 @@ input, textarea, select { font-family:inherit; }
 .plant-hero { background: linear-gradient(160deg, rgba(6,95,70,0.15), var(--surface)); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
 .plant-hero .plant-name { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
 .plant-hero .plant-meta { font-size: 13px; color: var(--text3); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ===== STRAIN AUTOCOMPLETE ===== */
+.strain-ac-wrap { position: relative; }
+.strain-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  z-index: 300;
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.strain-dd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background var(--transition);
+  gap: 10px;
+}
+.strain-dd-item:hover { background: var(--bg3); }
+.strain-dd-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.strain-dd-type {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.strain-dd-type.type-indica { background: rgba(167,139,250,0.18); color: #a78bfa; }
+.strain-dd-type.type-sativa { background: rgba(52,211,153,0.15); color: var(--accent); }
+.strain-dd-type.type-hybrid { background: rgba(251,191,36,0.15); color: var(--gold); }
+.strain-dd-type.type-cbd, .strain-dd-type.type- { background: var(--bg4); color: var(--text3); }
+.strain-dd-loading { padding: 12px 14px; font-size: 13px; color: var(--text3); text-align: center; }
+
+/* ===== STRAIN INFO CARD ===== */
+.strain-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; }
+.strain-card-header {
+  padding: 16px 18px 14px;
+  background: linear-gradient(135deg, rgba(167,139,250,0.08), rgba(52,211,153,0.06));
+  border-bottom: 1px solid var(--border);
+}
+.strain-card-name { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+.strain-card-meta { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.strain-type-badge {
+  font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: capitalize;
+}
+.strain-type-badge.type-indica { background: rgba(167,139,250,0.2); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+.strain-type-badge.type-sativa { background: rgba(52,211,153,0.15); color: var(--accent); border: 1px solid rgba(52,211,153,0.2); }
+.strain-type-badge.type-hybrid { background: rgba(251,191,36,0.12); color: var(--gold); border: 1px solid rgba(251,191,36,0.2); }
+.strain-type-badge.type-cbd, .strain-type-badge.type- { background: var(--bg4); color: var(--text3); border: 1px solid var(--border); }
+.strain-stat-row { display: flex; gap: 10px; margin-top: 10px; }
+.strain-stat {
+  flex: 1; background: var(--bg3); border-radius: var(--radius-sm);
+  padding: 10px 12px; text-align: center; border: 1px solid var(--border);
+}
+.strain-stat-val { font-size: 20px; font-weight: 800; color: var(--accent); }
+.strain-stat-lbl { font-size: 11px; color: var(--text3); font-weight: 500; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.strain-card-body { padding: 14px 18px; }
+.strain-section { margin-bottom: 14px; }
+.strain-section:last-child { margin-bottom: 0; }
+.strain-section-title { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.strain-desc { font-size: 14px; color: var(--text2); line-height: 1.6; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 20px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+}
+.pill.effect { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.2); color: var(--mint); }
+.pill.flavor { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.2); color: var(--gold); }
+.pill.medical { background: rgba(167,139,250,0.08); border-color: rgba(167,139,250,0.2); color: #c4b5fd; }
+.strain-not-found { text-align: center; padding: 32px 16px; color: var(--text3); }
+.strain-not-found .snf-icon { font-size: 36px; margin-bottom: 12px; }
+.strain-loading { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 14px; }
 .stage-label { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-glow); padding: 4px 12px; border-radius: 50px; margin-top: 10px; }
 
 /* ===== SMART PROMPT ===== */
@@ -1058,7 +1139,7 @@ function showNewGrowForm() {
       <div style="font-size:17px; font-weight:700; margin-bottom:16px">Start New Grow</div>
       <div class="form-row">
         <div class="form-group"><label>Grow Name</label><input id="ng-name" placeholder="e.g. Spring 2026"></div>
-        <div class="form-group"><label>Strain</label><input id="ng-strain" placeholder="e.g. Northern Lights"></div>
+        <div class="form-group"><label>Strain</label><div class="strain-ac-wrap"><input id="ng-strain" placeholder="e.g. Northern Lights" autocomplete="off" data-slug="" oninput="handleStrainInput('ng-strain','ng-strain-dd')" onblur="hideStrainDropdown('ng-strain-dd')"><div id="ng-strain-dd" class="strain-dropdown" style="display:none"></div></div></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Medium</label>
@@ -1083,6 +1164,7 @@ async function createGrow() {
     const { grow } = await api('POST', '/api/grows', {
       name,
       strain: document.getElementById('ng-strain').value.trim(),
+      ...((() => { const el = document.getElementById('ng-strain'); const s = el?.value?.trim(); const slug = el?.dataset?.slug; if (s && slug) kushySaveSlug(s, slug); return {}; })()),
       medium: document.getElementById('ng-medium').value,
       environment: document.getElementById('ng-env').value
     });
@@ -1142,7 +1224,7 @@ function showAddPlantForm() {
       <div style="font-size:17px; font-weight:700; margin-bottom:16px">Add Plant</div>
       <div class="form-row">
         <div class="form-group"><label>Plant Name</label><input id="np-name" placeholder="e.g. Big Betty"></div>
-        <div class="form-group"><label>Strain (if different)</label><input id="np-strain" placeholder="${escapeHtml(grow.strain || 'Same as grow')}"></div>
+        <div class="form-group"><label>Strain (if different)</label><div class="strain-ac-wrap"><input id="np-strain" placeholder="${escapeHtml(grow.strain || 'Same as grow')}" autocomplete="off" data-slug="" oninput="handleStrainInput('np-strain','np-strain-dd')" onblur="hideStrainDropdown('np-strain-dd')"><div id="np-strain-dd" class="strain-dropdown" style="display:none"></div></div></div>
       </div>
       <div class="form-group"><label>Starting Stage</label>
         <select id="np-stage">${STAGES.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}</select>
@@ -1162,6 +1244,7 @@ async function addPlant() {
     const { plant } = await api('POST', `/api/grows/${currentGrowId}/plants`, {
       name,
       strainOverride: document.getElementById('np-strain').value.trim(),
+      ...((() => { const el = document.getElementById('np-strain'); const s = el?.value?.trim(); const slug = el?.dataset?.slug; if (s && slug) kushySaveSlug(s, slug); return {}; })()),
       stage: document.getElementById('np-stage').value
     });
     plant.notes = [];
@@ -1233,6 +1316,7 @@ function renderPlant(app) {
       <div class="tabs">
         <div class="tab ${currentPlantTab === 'timeline' ? 'active' : ''}" onclick="switchPlantTab('timeline')">📋 Timeline</div>
         <div class="tab ${currentPlantTab === 'advice' ? 'active' : ''}" onclick="switchPlantTab('advice')">💡 Advice</div>
+        <div class="tab ${currentPlantTab === 'strain' ? 'active' : ''}" onclick="switchPlantTab('strain')">🌿 Strain</div>
       </div>
       <div id="plant-tab-content"></div>
     </div>`;
@@ -1245,6 +1329,7 @@ function renderPlantTab(plant, grow) {
   pendingPhoto = null;
   if (currentPlantTab === 'timeline') renderTimelineTab(c, plant);
   else if (currentPlantTab === 'advice') renderAdviceTab(c, plant);
+  else if (currentPlantTab === 'strain') renderStrainTab(c, plant, grow);
 }
 
 function renderTimelineTab(c, plant) {
@@ -1503,7 +1588,8 @@ function switchPlantTab(tab) {
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.remove('active');
     if ((tab === 'timeline' && t.textContent.includes('Timeline')) ||
-        (tab === 'advice' && t.textContent.includes('Advice'))) t.classList.add('active');
+        (tab === 'advice' && t.textContent.includes('Advice')) ||
+        (tab === 'strain' && t.textContent.includes('Strain'))) t.classList.add('active');
   });
   renderPlantTab(getPlant(currentGrowId, currentPlantId), getGrow(currentGrowId));
 }
@@ -1770,6 +1856,164 @@ document.addEventListener('keydown', e => {
              document.getElementById('auth-screen')?.style.display !== 'none') doResetPassword();
   }
 });
+
+// ============ KUSHY API ============
+const KUSHY_BASE = 'https://api.kushy.net/api';
+const _kushyCache = {};
+let _strainAcDebounce = null;
+
+// Persist name→slug mapping in localStorage so the strain tab works after page reload
+function kushySaveSlug(strainName, slug) {
+  if (!strainName || !slug) return;
+  try {
+    const map = JSON.parse(localStorage.getItem('kushySlugs') || '{}');
+    map[strainName.toLowerCase().trim()] = slug;
+    localStorage.setItem('kushySlugs', JSON.stringify(map));
+  } catch {}
+}
+function kushyGetSlug(strainName) {
+  if (!strainName) return null;
+  try {
+    const map = JSON.parse(localStorage.getItem('kushySlugs') || '{}');
+    return map[strainName.toLowerCase().trim()] || null;
+  } catch { return null; }
+}
+
+async function kushySearch(query) {
+  if (!query || query.length < 2) return [];
+  const key = `s:${query.toLowerCase()}`;
+  if (_kushyCache[key]) return _kushyCache[key];
+  try {
+    const res = await fetch(`${KUSHY_BASE}/strains?search=${encodeURIComponent(query)}&limit=8`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const results = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+    _kushyCache[key] = results;
+    return results;
+  } catch { return []; }
+}
+
+async function kushyGetStrain(slug) {
+  if (!slug) return null;
+  const key = `g:${slug}`;
+  if (_kushyCache[key]) return _kushyCache[key];
+  try {
+    const res = await fetch(`${KUSHY_BASE}/strains/${slug}`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const strain = json.data && !Array.isArray(json.data) ? json.data : (json.data?.[0] || null);
+    if (strain) _kushyCache[key] = strain;
+    return strain;
+  } catch { return null; }
+}
+
+async function kushyFindByName(name) {
+  if (!name) return null;
+  const slug = kushyGetSlug(name);
+  if (slug) {
+    const s = await kushyGetStrain(slug);
+    if (s) return s;
+  }
+  // Fall back to search
+  const results = await kushySearch(name);
+  if (!results.length) return null;
+  // Prefer exact name match
+  const exact = results.find(r => r.name?.toLowerCase() === name.toLowerCase());
+  const strain = exact || results[0];
+  if (strain?.slug) kushySaveSlug(name, strain.slug);
+  return strain;
+}
+
+// ---- Autocomplete UI ----
+function handleStrainInput(inputId, dropdownId) {
+  clearTimeout(_strainAcDebounce);
+  const input = document.getElementById(inputId);
+  const dd = document.getElementById(dropdownId);
+  if (!input || !dd) return;
+  const q = input.value.trim();
+  // Clear slug if user edits manually
+  input.dataset.slug = '';
+  if (q.length < 2) { dd.style.display = 'none'; return; }
+  dd.innerHTML = '<div class="strain-dd-loading">Searching…</div>';
+  dd.style.display = 'block';
+  _strainAcDebounce = setTimeout(async () => {
+    const results = await kushySearch(q);
+    if (!document.getElementById(dropdownId)) return; // form may have been removed
+    if (!results.length) { dd.style.display = 'none'; return; }
+    dd.innerHTML = results.map(s => {
+      const typeClass = 'type-' + (s.type || '').toLowerCase().replace(/\s+/g, '-');
+      return `<div class="strain-dd-item" onmousedown="selectStrain(event,'${inputId}','${dropdownId}','${escapeHtml(s.name)}','${escapeHtml(s.slug || '')}')">
+        <span class="strain-dd-name">${escapeHtml(s.name)}</span>
+        ${s.type ? `<span class="strain-dd-type ${typeClass}">${escapeHtml(s.type)}</span>` : ''}
+      </div>`;
+    }).join('');
+    dd.style.display = 'block';
+  }, 300);
+}
+
+function selectStrain(e, inputId, dropdownId, name, slug) {
+  e.preventDefault();
+  const input = document.getElementById(inputId);
+  if (input) { input.value = name; input.dataset.slug = slug; }
+  const dd = document.getElementById(dropdownId);
+  if (dd) dd.style.display = 'none';
+  if (name && slug) kushySaveSlug(name, slug);
+}
+
+function hideStrainDropdown(dropdownId) {
+  const dd = document.getElementById(dropdownId);
+  if (dd) setTimeout(() => { dd.style.display = 'none'; }, 150);
+}
+
+// ---- Strain Info Tab ----
+async function renderStrainTab(c, plant, grow) {
+  const strainName = plant.strainOverride || grow.strain || '';
+  if (!strainName) {
+    c.innerHTML = `<div class="strain-not-found fade-in"><div class="snf-icon">🌿</div><p>No strain recorded for this plant.</p><p style="margin-top:8px;font-size:13px">Edit the grow or plant to add a strain name.</p></div>`;
+    return;
+  }
+  c.innerHTML = `<div class="strain-loading fade-in">🔍 Looking up <strong>${escapeHtml(strainName)}</strong>…</div>`;
+  const strain = await kushyFindByName(strainName);
+  if (!strain) {
+    c.innerHTML = `<div class="strain-not-found fade-in">
+      <div class="snf-icon">🌿</div>
+      <p style="font-weight:600;margin-bottom:6px">${escapeHtml(strainName)}</p>
+      <p>No data found in the Kushy database for this strain.</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--text4)">Try checking the spelling or selecting from the autocomplete when editing.</p>
+    </div>`;
+    return;
+  }
+  const typeClass = 'type-' + (strain.type || '').toLowerCase().replace(/\s+/g, '-');
+  const thc = strain.thc || strain.THC || null;
+  const cbd = strain.cbd || strain.CBD || null;
+  const desc = strain.description || strain.desc || '';
+  const effects = Array.isArray(strain.effects) ? strain.effects : [];
+  const flavors = Array.isArray(strain.flavors) ? strain.flavors : [];
+  const medical = Array.isArray(strain.medical) ? strain.medical : [];
+
+  c.innerHTML = `<div class="fade-in">
+    <div class="strain-card">
+      <div class="strain-card-header">
+        <div class="strain-card-name">${escapeHtml(strain.name || strainName)}</div>
+        <div class="strain-card-meta">
+          ${strain.type ? `<span class="strain-type-badge ${typeClass}">${escapeHtml(strain.type)}</span>` : ''}
+        </div>
+        ${(thc || cbd) ? `<div class="strain-stat-row">
+          ${thc ? `<div class="strain-stat"><div class="strain-stat-val">${escapeHtml(String(thc))}</div><div class="strain-stat-lbl">THC</div></div>` : ''}
+          ${cbd ? `<div class="strain-stat"><div class="strain-stat-val">${escapeHtml(String(cbd))}</div><div class="strain-stat-lbl">CBD</div></div>` : ''}
+        </div>` : ''}
+      </div>
+      <div class="strain-card-body">
+        ${desc ? `<div class="strain-section"><div class="strain-section-title">About</div><p class="strain-desc">${escapeHtml(desc)}</p></div>` : ''}
+        ${effects.length ? `<div class="strain-section"><div class="strain-section-title">Effects</div><div class="pill-row">${effects.map(e => `<span class="pill effect">${escapeHtml(e)}</span>`).join('')}</div></div>` : ''}
+        ${flavors.length ? `<div class="strain-section"><div class="strain-section-title">Flavors</div><div class="pill-row">${flavors.map(f => `<span class="pill flavor">${escapeHtml(f)}</span>`).join('')}</div></div>` : ''}
+        ${medical.length ? `<div class="strain-section"><div class="strain-section-title">Medical Uses</div><div class="pill-row">${medical.map(m => `<span class="pill medical">${escapeHtml(m)}</span>`).join('')}</div></div>` : ''}
+        ${!desc && !effects.length && !flavors.length && !medical.length ? `<p style="color:var(--text3);font-size:14px">No detailed data available for this strain.</p>` : ''}
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:4px">Data from <a href="https://kushy.net" target="_blank" style="color:var(--text3)">Kushy</a></p>
+  </div>`;
+}
 
 // ============ INIT ============
 async function init() {
