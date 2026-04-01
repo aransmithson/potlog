@@ -1,50 +1,70 @@
-// Kushy API proxy — forwards requests to api.kushy.net server-side,
-// avoiding CORS restrictions in the browser.
+// Local strain API — serves from bundled dataset (2,351 strains).
+// Replaces the old Kushy proxy (api.kushy.net is no longer available).
 // Mounted at /api/kushy/...
-// e.g. GET /api/kushy/strains?search=og&limit=8  →  api.kushy.net/api/strains?search=og&limit=8
-//      GET /api/kushy/strains/northern-lights     →  api.kushy.net/api/strains/northern-lights
+// Endpoints:
+//   GET /api/kushy/strains?limit=100&page=1          → paginated list
+//   GET /api/kushy/strains?search=og+kush&limit=8    → search by name
+//   GET /api/kushy/strains/:slug                     → single strain by slug
 
-const KUSHY_ORIGIN = 'https://api.kushy.net/api';
+import { STRAINS } from './_strains.js';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600', ...CORS_HEADERS },
+  });
+}
+
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
 export async function onRequestGet({ request, params }) {
-  // params.path is an array of path segments after /api/kushy/
   const segments = params.path ?? [];
-  const upstreamPath = segments.join('/');
+  const url = new URL(request.url);
 
-  // Forward query string unchanged
-  const incomingUrl = new URL(request.url);
-  const upstreamUrl = `${KUSHY_ORIGIN}/${upstreamPath}${incomingUrl.search}`;
-
-  let upstreamRes;
-  try {
-    upstreamRes = await fetch(upstreamUrl, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'PotLog/1.0' },
-      cf: { cacheTtl: 300, cacheEverything: true }, // cache at Cloudflare edge for 5 min
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: 'Kushy API unreachable', detail: err.message }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-    });
+  // Only handle /strains routes
+  if (segments[0] !== 'strains') {
+    return json({ error: 'Not found' }, 404);
   }
 
-  // Pass through status and body, adding CORS headers
-  const body = await upstreamRes.text();
-  return new Response(body, {
-    status: upstreamRes.status,
-    headers: {
-      'Content-Type': upstreamRes.headers.get('Content-Type') || 'application/json',
-      'Cache-Control': 'public, max-age=300',
-      ...CORS_HEADERS,
-    },
-  });
+  // GET /api/kushy/strains/:slug — single strain lookup
+  if (segments.length >= 2) {
+    const slug = segments.slice(1).join('/').toLowerCase();
+    const strain = STRAINS.find(s => s.slug === slug);
+    if (!strain) return json({ data: null }, 404);
+    return json({ data: strain });
+  }
+
+  // GET /api/kushy/strains?search=...&limit=...
+  const search = url.searchParams.get('search');
+  const limit = Math.min(parseInt(url.searchParams.get('limit')) || 100, 200);
+  const page = parseInt(url.searchParams.get('page')) || 1;
+
+  if (search) {
+    const q = search.toLowerCase();
+    // Find matches, prioritise starts-with over contains
+    const startsWith = [];
+    const contains = [];
+    for (const s of STRAINS) {
+      const nameLower = s.name.toLowerCase();
+      if (nameLower.startsWith(q)) startsWith.push(s);
+      else if (nameLower.includes(q)) contains.push(s);
+    }
+    startsWith.sort((a, b) => a.name.localeCompare(b.name));
+    contains.sort((a, b) => a.name.localeCompare(b.name));
+    const results = [...startsWith, ...contains].slice(0, limit);
+    return json({ data: results });
+  }
+
+  // GET /api/kushy/strains?limit=...&page=... — paginated list
+  const offset = (page - 1) * limit;
+  const pageData = STRAINS.slice(offset, offset + limit);
+  return json({ data: pageData });
 }

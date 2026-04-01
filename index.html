@@ -698,7 +698,7 @@ input, textarea, select { font-family:inherit; }
 </div>
 
 <!-- ===== KUSHY DEBUG MODAL ===== -->
-<button id="kushy-debug-btn" onclick="openKushyDebug()" title="Kushy API Debug" style="
+<button id="kushy-debug-btn" onclick="openKushyDebug()" title="Strain API Debug" style="
   position:fixed; bottom:80px; right:16px; z-index:9999;
   width:40px; height:40px; border-radius:50%;
   background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.35);
@@ -713,7 +713,7 @@ input, textarea, select { font-family:inherit; }
     max-height:80vh; overflow-y:auto; box-shadow:0 -8px 40px rgba(0,0,0,0.5);
   ">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
-      <div style="font-size:16px; font-weight:700; color:var(--accent)">🐛 Kushy API Debug</div>
+      <div style="font-size:16px; font-weight:700; color:var(--accent)">🐛 Strain API Debug</div>
       <button onclick="closeKushyDebug()" style="background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1">&times;</button>
     </div>
 
@@ -2111,7 +2111,7 @@ async function renderStrainTab(c, plant, grow) {
     c.innerHTML = `<div class="strain-not-found fade-in">
       <div class="snf-icon">🌿</div>
       <p style="font-weight:600;margin-bottom:6px">${escapeHtml(strainName)}</p>
-      <p>No data found in the Kushy database for this strain.</p>
+      <p>No data found in the strain database for this strain.</p>
       <p style="margin-top:8px;font-size:12px;color:var(--text4)">Try checking the spelling or selecting from the autocomplete when editing.</p>
     </div>`;
     return;
@@ -2144,7 +2144,7 @@ async function renderStrainTab(c, plant, grow) {
         ${!desc && !effects.length && !flavors.length && !medical.length ? `<p style="color:var(--text3);font-size:14px">No detailed data available for this strain.</p>` : ''}
       </div>
     </div>
-    <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:4px">Data from <a href="https://kushy.net" target="_blank" style="color:var(--text3)">Kushy</a></p>
+    <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:4px">Strain data from <a href="https://github.com/Piyush-Bhor/The_Cannabis_API" target="_blank" style="color:var(--text3)">The Cannabis API</a></p>
   </div>`;
 }
 
