@@ -34,12 +34,10 @@ export async function requireAuth(request, db) {
   const cookies = parseCookies(request.headers.get('Cookie') || '');
   const token = cookies['pl_session'];
   if (!token) return null;
-
   const session = await db.prepare(
     'SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?'
   ).bind(token, Date.now()).first();
   if (!session) return null;
-
   const user = await db.prepare(
     'SELECT id, username, email, display_name, avatar_emoji, bio, settings FROM users WHERE id = ?'
   ).bind(session.user_id).first();
@@ -62,18 +60,90 @@ export function clearCookie() {
   return 'pl_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0';
 }
 
+// Validation constants
+export const LIMITS = {
+  name:        100,
+  strain:      100,
+  note:       2000,
+  bio:         500,
+  displayName:  50,
+  username:     30,
+  password:    200,
+};
+
+export function isValidEmail(email) {
+  if (typeof email !== 'string') return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+export function isValidUsername(username) {
+  if (typeof username !== 'string') return false;
+  return username.length >= 3 && username.length <= LIMITS.username &&
+    /^[a-zA-Z0-9_]+$/.test(username);
+}
+
+export function sanitise(str, maxLen) {
+  if (!str || typeof str !== 'string') return '';
+  return str.trim().slice(0, maxLen || 500);
+}
+
+const VALID_MEDIUMS = ['Soil', 'Coco', 'Hydro', 'Aero', 'Other'];
+export function isValidMedium(medium) {
+  return VALID_MEDIUMS.includes(medium);
+}
+
+const VALID_ENVIRONMENTS = ['Indoor', 'Outdoor', 'Greenhouse'];
+export function isValidEnvironment(environment) {
+  return VALID_ENVIRONMENTS.includes(environment);
+}
+
+export async function getGrowsList(db, userId) {
+  const growsResult = await db.prepare(
+    'SELECT * FROM grows WHERE user_id = ? ORDER BY created_at DESC'
+  ).bind(userId).all();
+  const grows = [];
+  for (const g of growsResult.results) {
+    const plantRow = await db.prepare('SELECT COUNT(*) as cnt FROM plants WHERE grow_id = ?').bind(g.id).first();
+    const noteRow = await db.prepare('SELECT COUNT(*) as cnt FROM notes n INNER JOIN plants p ON p.id = n.plant_id WHERE p.grow_id = ?').bind(g.id).first();
+    const growNoteRow = await db.prepare('SELECT COUNT(*) as cnt FROM grow_notes WHERE grow_id = ?').bind(g.id).first();
+    const photoRow = await db.prepare('SELECT COUNT(*) as cnt FROM notes n INNER JOIN plants p ON p.id = n.plant_id WHERE p.grow_id = ? AND n.photo IS NOT NULL').bind(g.id).first();
+    grows.push({
+      id: g.id, name: g.name, strain: g.strain || '',
+      medium: g.medium, environment: g.environment,
+      completed: !!g.completed, createdAt: g.created_at,
+      plantCount: plantRow ? plantRow.cnt : 0,
+      noteCount: (noteRow ? noteRow.cnt : 0) + (growNoteRow ? growNoteRow.cnt : 0),
+      photoCount: photoRow ? photoRow.cnt : 0,
+    });
+  }
+  return grows;
+}
+
+export async function getPlantsList(db, growId) {
+  const plantsResult = await db.prepare(
+    'SELECT * FROM plants WHERE grow_id = ? ORDER BY created_at ASC'
+  ).bind(growId).all();
+  const plants = [];
+  for (const p of plantsResult.results) {
+    const noteRow = await db.prepare('SELECT COUNT(*) as cnt FROM notes WHERE plant_id = ?').bind(p.id).first();
+    plants.push({
+      id: p.id, name: p.name, strainOverride: p.strain_override || '',
+      stage: p.stage, createdAt: p.created_at,
+      milestones: JSON.parse(p.milestones || '[]'),
+      dismissedPrompts: JSON.parse(p.dismissed_prompts || '[]'),
+      noteCount: noteRow ? noteRow.cnt : 0,
+    });
+  }
+  return plants;
+}
+
 // R2 helpers
-// Convert stored photo value to a URL the frontend can use.
-// Stored value is either:
-//   - an R2 key  (e.g. "userId/noteId.jpg")  → serve via /api/photos/...
-//   - a legacy base64 data URI               → return as-is
 export function photoUrl(stored) {
   if (!stored) return null;
-  if (stored.startsWith('data:')) return stored; // legacy
+  if (stored.startsWith('data:')) return stored;
   return `/api/photos/${stored}`;
 }
 
-// Delete one or more R2 objects by their stored keys (ignores base64 values)
 export async function deleteR2Photos(r2, keys) {
   for (const key of keys) {
     if (key && !key.startsWith('data:')) {
@@ -82,52 +152,37 @@ export async function deleteR2Photos(r2, keys) {
   }
 }
 
-// Assemble full data structure from D1 tables (matching localStorage format)
 export async function getFullGrows(db, userId) {
   const growsResult = await db.prepare(
     'SELECT * FROM grows WHERE user_id = ? ORDER BY created_at DESC'
   ).bind(userId).all();
-
   const grows = [];
   for (const g of growsResult.results) {
-    const plantsResult = await db.prepare(
-      'SELECT * FROM plants WHERE grow_id = ? ORDER BY created_at ASC'
-    ).bind(g.id).all();
-
+    const plantsResult = await db.prepare('SELECT * FROM plants WHERE grow_id = ? ORDER BY created_at ASC').bind(g.id).all();
     const plants = [];
     for (const p of plantsResult.results) {
-      const notesResult = await db.prepare(
-        'SELECT * FROM notes WHERE plant_id = ? ORDER BY timestamp ASC'
-      ).bind(p.id).all();
-
+      const notesResult = await db.prepare('SELECT * FROM notes WHERE plant_id = ? ORDER BY timestamp ASC').bind(p.id).all();
       plants.push({
-        id: p.id,
-        name: p.name,
-        strainOverride: p.strain_override || '',
-        stage: p.stage,
-        createdAt: p.created_at,
+        id: p.id, name: p.name, strainOverride: p.strain_override || '',
+        stage: p.stage, createdAt: p.created_at,
         milestones: JSON.parse(p.milestones || '[]'),
         dismissedPrompts: JSON.parse(p.dismissed_prompts || '[]'),
         notes: notesResult.results.map(n => ({
-          id: n.id,
-          text: n.text || '',
-          photo: photoUrl(n.photo),
-          stage: n.stage,
-          timestamp: n.timestamp
+          id: n.id, text: n.text || '', photo: photoUrl(n.photo),
+          stage: n.stage, timestamp: n.timestamp
         })),
         photos: []
       });
     }
-
+    const growNotesResult = await db.prepare('SELECT * FROM grow_notes WHERE grow_id = ? ORDER BY timestamp ASC').bind(g.id).all();
     grows.push({
-      id: g.id,
-      name: g.name,
-      strain: g.strain || '',
-      medium: g.medium,
-      environment: g.environment,
-      completed: !!g.completed,
-      createdAt: g.created_at,
-      plants
+      id: g.id, name: g.name, strain: g.strain || '',
+      medium: g.medium, environment: g.environment,
+      completed: !!g.completed, createdAt: g.created_at,
+      plants,
+      notes: growNotesResult.results.map(n => ({
+        id: n.id, text: n.text || '', photo: photoUrl(n.photo), timestamp: n.timestamp
+      }))
     });
   }
   return grows;
