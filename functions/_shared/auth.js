@@ -126,12 +126,16 @@ export async function getPlantsList(db, growId) {
   const plants = [];
   for (const p of plantsResult.results) {
     const noteRow = await db.prepare('SELECT COUNT(*) as cnt FROM notes WHERE plant_id = ?').bind(p.id).first();
+    const photoRow = await db.prepare(
+      'SELECT photo FROM notes WHERE plant_id = ? AND photo IS NOT NULL ORDER BY timestamp DESC LIMIT 1'
+    ).bind(p.id).first();
     plants.push({
       id: p.id, name: p.name, strainOverride: p.strain_override || '',
       stage: p.stage, createdAt: p.created_at,
       milestones: JSON.parse(p.milestones || '[]'),
       dismissedPrompts: JSON.parse(p.dismissed_prompts || '[]'),
       noteCount: noteRow ? noteRow.cnt : 0,
+      lastPhoto: photoRow ? photoUrl(photoRow.photo) : null,
     });
   }
   return plants;
