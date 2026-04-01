@@ -717,20 +717,48 @@ input, textarea, select { font-family:inherit; }
       <button onclick="closeKushyDebug()" style="background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1">&times;</button>
     </div>
 
-    <div style="display:flex; gap:8px; margin-bottom:12px">
-      <input id="kushy-debug-input" placeholder="Type a strain name…" autocomplete="off"
-        style="flex:1; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:14px;"
-        onkeydown="if(event.key==='Enter') runKushyDebug()">
-      <button class="btn btn-primary btn-sm" onclick="runKushyDebug()" style="white-space:nowrap">Search</button>
+    <!-- Strain list status -->
+    <div id="kushy-list-status" style="
+      font-size:12px; padding:8px 12px; border-radius:var(--radius-sm);
+      background:var(--bg3); border:1px solid var(--border); margin-bottom:14px;
+    ">⏳ Strain list not yet loaded</div>
+
+    <!-- Tab bar -->
+    <div style="display:flex; gap:4px; margin-bottom:12px">
+      <button class="btn btn-secondary btn-sm" onclick="kushyDebugTab('search')" id="kdt-search" style="opacity:1">🔍 API Search</button>
+      <button class="btn btn-secondary btn-sm" onclick="kushyDebugTab('local')"  id="kdt-local"  style="opacity:0.5">📋 Local Filter</button>
     </div>
 
-    <div id="kushy-debug-status" style="font-size:12px; color:var(--text3); margin-bottom:8px; min-height:18px"></div>
+    <!-- API Search panel -->
+    <div id="kdp-search">
+      <div style="display:flex; gap:8px; margin-bottom:8px">
+        <input id="kushy-debug-input" placeholder="Type a strain name…" autocomplete="off"
+          style="flex:1; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:14px;"
+          onkeydown="if(event.key==='Enter') runKushyDebug()">
+        <button class="btn btn-primary btn-sm" onclick="runKushyDebug()" style="white-space:nowrap">Search</button>
+      </div>
+      <div id="kushy-debug-status" style="font-size:12px; color:var(--text3); margin-bottom:8px; min-height:18px"></div>
+      <pre id="kushy-debug-output" style="
+        background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
+        padding:14px; font-size:12px; color:var(--mint); overflow-x:auto; white-space:pre-wrap;
+        word-break:break-all; min-height:80px; max-height:300px; overflow-y:auto;
+      ">Results will appear here…</pre>
+    </div>
 
-    <pre id="kushy-debug-output" style="
-      background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
-      padding:14px; font-size:12px; color:var(--mint); overflow-x:auto; white-space:pre-wrap;
-      word-break:break-all; min-height:80px; max-height:360px; overflow-y:auto;
-    ">Results will appear here…</pre>
+    <!-- Local filter panel -->
+    <div id="kdp-local" style="display:none">
+      <div style="display:flex; gap:8px; margin-bottom:8px">
+        <input id="kushy-local-input" placeholder="Filter loaded strains…" autocomplete="off"
+          style="flex:1; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:14px;"
+          oninput="runKushyLocalFilter()">
+      </div>
+      <div id="kushy-local-status" style="font-size:12px; color:var(--text3); margin-bottom:8px; min-height:18px"></div>
+      <pre id="kushy-local-output" style="
+        background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
+        padding:14px; font-size:12px; color:var(--mint); overflow-x:auto; white-space:pre-wrap;
+        word-break:break-all; min-height:80px; max-height:300px; overflow-y:auto;
+      ">Start typing to filter…</pre>
+    </div>
   </div>
 </div>
 
@@ -1898,6 +1926,49 @@ document.addEventListener('keydown', e => {
 const KUSHY_BASE = '/api/kushy';
 const _kushyCache = {};
 let _strainAcDebounce = null;
+let _strainList = [];       // full list loaded on init
+let _strainListReady = false;
+
+async function loadStrainList() {
+  const PAGE_SIZE = 100;
+  const MAX_PAGES = 10; // up to 1000 strains
+  let page = 1;
+  let all = [];
+  console.log('[Kushy] Loading strain list…');
+  try {
+    while (page <= MAX_PAGES) {
+      const res = await fetch(`${KUSHY_BASE}/strains?limit=${PAGE_SIZE}&page=${page}`, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) { console.warn('[Kushy] Non-OK response on page', page, res.status); break; }
+      const json = await res.json();
+      console.log(`[Kushy] page ${page} raw:`, json);
+      const data = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+      if (!data.length) break;
+      all = all.concat(data);
+      if (data.length < PAGE_SIZE) break; // last page
+      page++;
+    }
+    _strainList = all;
+    _strainListReady = true;
+    console.log(`[Kushy] Strain list ready — ${_strainList.length} strains loaded across ${page} page(s)`);
+  } catch (err) {
+    console.warn('[Kushy] Failed to load strain list:', err);
+  }
+}
+
+function searchStrainList(query) {
+  if (!query || query.length < 2) return [];
+  const q = query.toLowerCase();
+  const matches = _strainList.filter(s => s.name?.toLowerCase().includes(q));
+  // Rank: starts-with first, then alphabetical
+  matches.sort((a, b) => {
+    const as = a.name.toLowerCase().startsWith(q);
+    const bs = b.name.toLowerCase().startsWith(q);
+    if (as && !bs) return -1;
+    if (!as && bs) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  return matches.slice(0, 8);
+}
 
 // Persist name→slug mapping in localStorage so the strain tab works after page reload
 function kushySaveSlug(strainName, slug) {
@@ -1972,24 +2043,45 @@ function handleStrainInput(inputId, dropdownId) {
   const dd = document.getElementById(dropdownId);
   if (!input || !dd) return;
   const q = input.value.trim();
-  // Clear slug if user edits manually
   input.dataset.slug = '';
   if (q.length < 2) { dd.style.display = 'none'; return; }
-  dd.innerHTML = '<div class="strain-dd-loading">Searching…</div>';
-  dd.style.display = 'block';
-  _strainAcDebounce = setTimeout(async () => {
-    const results = await kushySearch(q);
-    if (!document.getElementById(dropdownId)) return; // form may have been removed
-    if (!results.length) { dd.style.display = 'none'; return; }
-    dd.innerHTML = results.map(s => {
-      const typeClass = 'type-' + (s.type || '').toLowerCase().replace(/\s+/g, '-');
-      return `<div class="strain-dd-item" onmousedown="selectStrain(event,'${inputId}','${dropdownId}','${escapeHtml(s.name)}','${escapeHtml(s.slug || '')}')">
-        <span class="strain-dd-name">${escapeHtml(s.name)}</span>
-        ${s.type ? `<span class="strain-dd-type ${typeClass}">${escapeHtml(s.type)}</span>` : ''}
-      </div>`;
-    }).join('');
+
+  if (_strainListReady) {
+    // Instant local search — no debounce needed
+    const results = searchStrainList(q);
+    renderStrainDropdownResults(inputId, dropdownId, results, q);
+  } else {
+    // List still loading — fall back to debounced API search
+    dd.innerHTML = '<div class="strain-dd-loading">⏳ Loading strain list…</div>';
     dd.style.display = 'block';
-  }, 300);
+    _strainAcDebounce = setTimeout(async () => {
+      const results = await kushySearch(q);
+      if (!document.getElementById(dropdownId)) return;
+      renderStrainDropdownResults(inputId, dropdownId, results, q);
+    }, 300);
+  }
+}
+
+function renderStrainDropdownResults(inputId, dropdownId, results, q) {
+  const dd = document.getElementById(dropdownId);
+  if (!dd) return;
+  if (!results.length) { dd.style.display = 'none'; return; }
+  // Highlight the matching portion of the name
+  const ql = q.toLowerCase();
+  dd.innerHTML = results.map(s => {
+    const typeClass = 'type-' + (s.type || '').toLowerCase().replace(/\s+/g, '-');
+    const idx = s.name.toLowerCase().indexOf(ql);
+    const highlighted = idx >= 0
+      ? escapeHtml(s.name.slice(0, idx)) +
+        `<strong style="color:var(--accent)">${escapeHtml(s.name.slice(idx, idx + q.length))}</strong>` +
+        escapeHtml(s.name.slice(idx + q.length))
+      : escapeHtml(s.name);
+    return `<div class="strain-dd-item" onmousedown="selectStrain(event,'${inputId}','${dropdownId}','${escapeHtml(s.name)}','${escapeHtml(s.slug || '')}')">
+      <span class="strain-dd-name">${highlighted}</span>
+      ${s.type ? `<span class="strain-dd-type ${typeClass}">${escapeHtml(s.type)}</span>` : ''}
+    </div>`;
+  }).join('');
+  dd.style.display = 'block';
 }
 
 function selectStrain(e, inputId, dropdownId, name, slug) {
@@ -2059,10 +2151,43 @@ async function renderStrainTab(c, plant, grow) {
 // ============ KUSHY DEBUG ============
 function openKushyDebug() {
   document.getElementById('kushy-debug-modal').style.display = 'flex';
+  refreshKushyListStatus();
   setTimeout(() => document.getElementById('kushy-debug-input')?.focus(), 50);
 }
 function closeKushyDebug() {
   document.getElementById('kushy-debug-modal').style.display = 'none';
+}
+function refreshKushyListStatus() {
+  const el = document.getElementById('kushy-list-status');
+  if (!el) return;
+  if (_strainListReady) {
+    el.style.background = 'rgba(52,211,153,0.08)';
+    el.style.borderColor = 'rgba(52,211,153,0.25)';
+    el.style.color = 'var(--accent)';
+    el.textContent = `✅ Strain list loaded — ${_strainList.length} strains ready for local search`;
+  } else {
+    el.style.background = 'var(--bg3)';
+    el.style.borderColor = 'var(--border)';
+    el.style.color = 'var(--text3)';
+    el.textContent = '⏳ Strain list still loading… (will fall back to API search in the meantime)';
+  }
+}
+function kushyDebugTab(tab) {
+  document.getElementById('kdp-search').style.display = tab === 'search' ? '' : 'none';
+  document.getElementById('kdp-local').style.display  = tab === 'local'  ? '' : 'none';
+  document.getElementById('kdt-search').style.opacity = tab === 'search' ? '1' : '0.5';
+  document.getElementById('kdt-local').style.opacity  = tab === 'local'  ? '1' : '0.5';
+  refreshKushyListStatus();
+}
+function runKushyLocalFilter() {
+  const q = document.getElementById('kushy-local-input').value.trim();
+  const status = document.getElementById('kushy-local-status');
+  const out = document.getElementById('kushy-local-output');
+  if (!_strainListReady) { status.textContent = '⏳ List not loaded yet.'; out.textContent = ''; return; }
+  if (q.length < 2) { status.textContent = `${_strainList.length} strains loaded. Type 2+ chars to filter.`; out.textContent = ''; return; }
+  const results = searchStrainList(q);
+  status.textContent = `${results.length} match${results.length !== 1 ? 'es' : ''} (showing up to 8 of ${_strainList.filter(s => s.name?.toLowerCase().includes(q.toLowerCase())).length} total)`;
+  out.textContent = results.length ? JSON.stringify(results, null, 2) : 'No matches.';
 }
 async function runKushyDebug() {
   const q = document.getElementById('kushy-debug-input').value.trim();
@@ -2112,6 +2237,7 @@ async function init() {
     currentUser = user;
     await loadGrowsList();
     showApp();
+    loadStrainList(); // fire-and-forget, ready before user reaches a form
   } catch {
     document.getElementById('auth-screen').style.display = '';
   }
