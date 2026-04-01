@@ -1,4 +1,4 @@
-import { requireAuth, json, genId, deleteR2Photos } from '../../../../_shared/auth.js';
+import { requireAuth, json, genId, deleteR2Photos, photoUrl } from '../../../../_shared/auth.js';
 
 async function ownsPlant(db, userId, growId, plantId) {
   const g = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
@@ -7,6 +7,35 @@ async function ownsPlant(db, userId, growId, plantId) {
   const p = await db.prepare('SELECT id FROM plants WHERE id = ? AND grow_id = ?')
     .bind(plantId, growId).first();
   return !!p;
+}
+
+// GET /api/grows/:id/plants/:plantId — Returns plant details with notes
+export async function onRequestGet({ request, env, params }) {
+  const user = await requireAuth(request, env.DB);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!await ownsPlant(env.DB, user.id, params.id, params.plantId))
+    return json({ error: 'Not found' }, 404);
+
+  const p = await env.DB.prepare('SELECT * FROM plants WHERE id = ?')
+    .bind(params.plantId).first();
+  if (!p) return json({ error: 'Not found' }, 404);
+
+  const notesResult = await env.DB.prepare(
+    'SELECT * FROM notes WHERE plant_id = ? ORDER BY timestamp ASC'
+  ).bind(params.plantId).all();
+
+  return json({
+    plant: {
+      id: p.id, name: p.name, strainOverride: p.strain_override || '',
+      stage: p.stage, createdAt: p.created_at,
+      milestones: JSON.parse(p.milestones || '[]'),
+      dismissedPrompts: JSON.parse(p.dismissed_prompts || '[]'),
+    },
+    notes: notesResult.results.map(n => ({
+      id: n.id, text: n.text || '', photo: photoUrl(n.photo),
+      stage: n.stage, timestamp: n.timestamp
+    }))
+  });
 }
 
 // PUT: update stage, milestones, dismissedPrompts, name

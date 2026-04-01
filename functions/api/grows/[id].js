@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
 
-  const plants = await getPlantsList(env.DB, user.id, params.id);
+  const plants = await getPlantsList(env.DB, params.id);
   if (plants === null) return json({ error: 'Not found' }, 404);
 
   // Also return grow metadata
