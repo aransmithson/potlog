@@ -1888,9 +1888,11 @@ async function kushySearch(query) {
     if (!res.ok) return [];
     const json = await res.json();
     const results = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+    console.log('[Kushy] search raw response:', json);
+    console.log('[Kushy] search results:', results);
     _kushyCache[key] = results;
     return results;
-  } catch { return []; }
+  } catch (err) { console.error('[Kushy] search error:', err); return []; }
 }
 
 async function kushyGetStrain(slug) {
@@ -1902,9 +1904,11 @@ async function kushyGetStrain(slug) {
     if (!res.ok) return null;
     const json = await res.json();
     const strain = json.data && !Array.isArray(json.data) ? json.data : (json.data?.[0] || null);
+    console.log('[Kushy] getStrain raw response:', json);
+    console.log('[Kushy] getStrain result:', strain);
     if (strain) _kushyCache[key] = strain;
     return strain;
-  } catch { return null; }
+  } catch (err) { console.error('[Kushy] getStrain error:', err); return null; }
 }
 
 async function kushyFindByName(name) {
