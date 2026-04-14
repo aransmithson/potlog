@@ -1,4 +1,4 @@
-import { requireAuth } from '../../_shared/auth.js';
+import { requireAuth, isEditor } from '../../_shared/auth.js';
 
 export async function onRequestGet({ request, env, params }) {
   // Require a valid session to view any photo
@@ -9,9 +9,9 @@ export async function onRequestGet({ request, env, params }) {
   const segments = Array.isArray(params.path) ? params.path : [params.path];
   const r2Key = segments.join('/');
 
-  // The first segment is the owner's user ID — enforce it matches the session
+  // Editors can only fetch their own photos; viewers can fetch any
   const ownerId = segments[0];
-  if (ownerId !== user.id) {
+  if (isEditor(user) && ownerId !== user.id) {
     return new Response('Forbidden', { status: 403 });
   }
 
@@ -24,9 +24,7 @@ export async function onRequestGet({ request, env, params }) {
   return new Response(obj.body, {
     headers: {
       'Content-Type': contentType,
-      // Cache in the browser for 24 h (private — not shared/CDN cacheable)
       'Cache-Control': 'private, max-age=86400',
-      // Prevent content sniffing
       'X-Content-Type-Options': 'nosniff'
     }
   });
