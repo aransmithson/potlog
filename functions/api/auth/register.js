@@ -1,8 +1,10 @@
 import { hashPassword, genId, json, sessionCookie, isValidEmail, isValidUsername, LIMITS } from '../../_shared/auth.js';
 
+const VALID_ROLES = ['editor', 'viewer'];
+
 export async function onRequestPost({ request, env }) {
   try {
-    const { username, email, password } = await request.json();
+    const { username, email, password, role } = await request.json();
 
     if (!username || !email || !password)
       return json({ error: 'Username, email and password are required' }, 400);
@@ -19,6 +21,8 @@ export async function onRequestPost({ request, env }) {
     if (password.length > LIMITS.password)
       return json({ error: 'Password is too long' }, 400);
 
+    const userRole = VALID_ROLES.includes(role) ? role : 'editor';
+
     // Check existing
     const existing = await env.DB.prepare(
       'SELECT id FROM users WHERE email = ? OR username = ?'
@@ -32,8 +36,8 @@ export async function onRequestPost({ request, env }) {
     const now = Date.now();
 
     await env.DB.prepare(
-      'INSERT INTO users (id, username, email, password_hash, salt, display_name, avatar_emoji, bio, settings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, username.toLowerCase(), email.toLowerCase(), passwordHash, salt, username.slice(0, LIMITS.displayName), '🌱', '', '{}', now).run();
+      'INSERT INTO users (id, username, email, password_hash, salt, display_name, avatar_emoji, bio, settings, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, username.toLowerCase(), email.toLowerCase(), passwordHash, salt, username.slice(0, LIMITS.displayName), '🌱', '', '{}', userRole, now).run();
 
     // Create session
     const sessionId = genId() + genId();
@@ -43,7 +47,7 @@ export async function onRequestPost({ request, env }) {
     ).bind(sessionId, id, expires, now).run();
 
     return json(
-      { user: { id, username: username.toLowerCase(), email: email.toLowerCase(), display_name: username.slice(0, LIMITS.displayName), avatar_emoji: '🌱', bio: '', settings: '{}' } },
+      { user: { id, username: username.toLowerCase(), email: email.toLowerCase(), display_name: username.slice(0, LIMITS.displayName), avatar_emoji: '🌱', bio: '', settings: '{}', role: userRole } },
       201,
       { 'Set-Cookie': sessionCookie(sessionId) }
     );

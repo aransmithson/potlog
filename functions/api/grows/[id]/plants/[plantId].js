@@ -1,4 +1,4 @@
-import { requireAuth, json, genId, deleteR2Photos, photoUrl } from '../../../../_shared/auth.js';
+import { requireAuth, isEditor, json, genId, deleteR2Photos, photoUrl } from '../../../../_shared/auth.js';
 
 async function ownsPlant(db, userId, growId, plantId) {
   const g = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
@@ -9,12 +9,23 @@ async function ownsPlant(db, userId, growId, plantId) {
   return !!p;
 }
 
+// For viewers: just check the plant exists (no ownership check)
+async function plantExists(db, growId, plantId) {
+  const p = await db.prepare('SELECT id FROM plants WHERE id = ? AND grow_id = ?')
+    .bind(plantId, growId).first();
+  return !!p;
+}
+
 // GET /api/grows/:id/plants/:plantId — Returns plant details with notes
 export async function onRequestGet({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
-  if (!await ownsPlant(env.DB, user.id, params.id, params.plantId))
-    return json({ error: 'Not found' }, 404);
+
+  const hasAccess = isEditor(user)
+    ? await ownsPlant(env.DB, user.id, params.id, params.plantId)
+    : await plantExists(env.DB, params.id, params.plantId);
+
+  if (!hasAccess) return json({ error: 'Not found' }, 404);
 
   const p = await env.DB.prepare('SELECT * FROM plants WHERE id = ?')
     .bind(params.plantId).first();
@@ -42,6 +53,7 @@ export async function onRequestGet({ request, env, params }) {
 export async function onRequestPut({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
   if (!await ownsPlant(env.DB, user.id, params.id, params.plantId))
     return json({ error: 'Not found' }, 404);
 
@@ -88,6 +100,7 @@ export async function onRequestPut({ request, env, params }) {
 export async function onRequestDelete({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
   if (!await ownsPlant(env.DB, user.id, params.id, params.plantId))
     return json({ error: 'Not found' }, 404);
 

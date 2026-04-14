@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_emoji TEXT DEFAULT '🌱',
   bio TEXT DEFAULT '',
   settings TEXT DEFAULT '{}',
+  role TEXT DEFAULT 'editor',
   created_at INTEGER NOT NULL
 );
 

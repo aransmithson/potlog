@@ -1,4 +1,4 @@
-import { requireAuth, json, genId } from '../../../../_shared/auth.js';
+import { requireAuth, isEditor, json, genId } from '../../../../_shared/auth.js';
 
 async function ownsGrow(db, userId, growId) {
   const g = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
@@ -9,6 +9,7 @@ async function ownsGrow(db, userId, growId) {
 export async function onRequestPost({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
   if (!await ownsGrow(env.DB, user.id, params.id))
     return json({ error: 'Not found' }, 404);
 

@@ -789,6 +789,13 @@ input, textarea, select { font-family:inherit; }
             <input type="password" id="reg-confirm" placeholder="Repeat password" autocomplete="new-password">
           </div>
         </div>
+        <div class="form-group">
+          <label>Account Type</label>
+          <select id="reg-role" style="width:100%; padding:10px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:14px;">
+            <option value="editor">✏️ Editor — full access (create, edit, delete)</option>
+            <option value="viewer">👁️ Viewer — read-only (view grows &amp; notes)</option>
+          </select>
+        </div>
         <button class="btn btn-primary btn-full" id="register-btn" onclick="doRegister()">Create Account</button>
       </div>
 
@@ -1230,12 +1237,13 @@ async function doRegister() {
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
   const confirm = document.getElementById('reg-confirm').value;
+  const role = document.getElementById('reg-role').value;
   if (!username || !email || !password) return showAuthError('Please fill in all fields.');
   if (password !== confirm) return showAuthError('Passwords do not match.');
   const btn = document.getElementById('register-btn');
   btn.disabled = true; btn.textContent = 'Creating account…';
   try {
-    const { user } = await api('POST', '/api/auth/register', { username, email, password });
+    const { user } = await api('POST', '/api/auth/register', { username, email, password, role });
     currentUser = user;
     data = { grows: [] };
     showApp();
@@ -1264,11 +1272,16 @@ function showApp() {
   render();
 }
 
+function isEditorUser() {
+  return currentUser && (currentUser.role === 'editor' || !currentUser.role);
+}
+
 function updateUserDropdown() {
   if (!currentUser) return;
   document.getElementById('avatar-btn').textContent = currentUser.avatar_emoji || '🌱';
   document.getElementById('dd-name').textContent = currentUser.display_name || currentUser.username;
-  document.getElementById('dd-username').textContent = '@' + currentUser.username;
+  const roleLabel = isEditorUser() ? '' : ' <span style="font-size:11px; color:var(--text3); background:var(--bg4); border-radius:6px; padding:1px 6px; margin-left:4px;">Viewer</span>';
+  document.getElementById('dd-username').innerHTML = '@' + currentUser.username + roleLabel;
 }
 
 function toggleDropdown() {
@@ -1316,9 +1329,9 @@ function renderHome(app) {
     app.innerHTML = `
       <div class="fade-in empty-state" style="padding-top:80px">
         <div class="empty-icon">🌱</div>
-        <h3>Start your first grow</h3>
-        <p style="margin-bottom:24px">Track your plants from seed to cure with tailored advice at every stage.</p>
-        <button class="btn btn-primary" onclick="showNewGrowForm()">+ New Grow</button>
+        <h3>${isEditorUser() ? 'Start your first grow' : 'No grows yet'}</h3>
+        <p style="margin-bottom:24px">${isEditorUser() ? 'Track your plants from seed to cure with tailored advice at every stage.' : 'Check back later — no grows have been created yet.'}</p>
+        ${isEditorUser() ? '<button class="btn btn-primary" onclick="showNewGrowForm()">+ New Grow</button>' : ''}
       </div><div id="new-grow-form"></div>`;
     return;
   }
@@ -1329,8 +1342,8 @@ function renderHome(app) {
   app.innerHTML = `
     <div class="fade-in">
       <div class="section-head" style="margin-top:8px">
-        <h2>Your Grows</h2>
-        <button class="btn btn-primary btn-sm" onclick="showNewGrowForm()">+ New Grow</button>
+        <h2>${isEditorUser() ? 'Your Grows' : 'Grows'}</h2>
+        ${isEditorUser() ? '<button class="btn btn-primary btn-sm" onclick="showNewGrowForm()">+ New Grow</button>' : ''}
       </div>
       <div class="stat-row">
         <div class="stat-box"><div class="stat-value">${active}</div><div class="stat-label">Active</div></div>
@@ -1417,11 +1430,11 @@ function renderGrow(app) {
         <div style="font-size:13px; color:var(--text3); margin-top:4px; display:flex; gap:10px; flex-wrap:wrap">
           <span>${escapeHtml(grow.strain || 'Unknown strain')}</span><span>·</span><span>${escapeHtml(grow.medium)}</span><span>·</span><span>${escapeHtml(grow.environment)}</span><span>·</span><span>Day ${age}</span>
         </div>
-        <div class="btn-group" style="margin-top:14px">
+        ${isEditorUser() ? `<div class="btn-group" style="margin-top:14px">
           <button class="btn btn-primary btn-sm" onclick="showAddPlantForm()">+ Add Plant</button>
           <button class="btn btn-secondary btn-sm" onclick="toggleGrowComplete('${grow.id}')">${grow.completed ? 'Reopen' : 'Complete'}</button>
           <button class="btn btn-danger btn-sm" onclick="confirmDeleteGrow('${grow.id}')">Delete</button>
-        </div>
+        </div>` : ''}
       </div>
       <div id="add-plant-form"></div>
       ${!grow.plants || grow.plants.length === 0 ? `
@@ -1529,12 +1542,13 @@ function renderPlant(app) {
             </div>
             <div class="stage-label">${stage.icon} ${stage.name} · ${stage.days}</div>
           </div>
-          <button class="btn btn-danger btn-sm" onclick="confirmDeletePlant('${grow.id}','${plant.id}')" style="flex-shrink:0">Delete</button>
+          ${isEditorUser() ? `<button class="btn btn-danger btn-sm" onclick="confirmDeletePlant('${grow.id}','${plant.id}')" style="flex-shrink:0">Delete</button>` : ''}
         </div>
         <div class="stage-tracker" style="margin-top:14px; margin-bottom:0">
           ${STAGES.map((s, i) => {
             const cls = i < si ? 'completed-stage' : i === si ? 'active' : 'upcoming';
-            return `<span class="stage-pill ${cls}" onclick="changeStage('${s.id}')">${s.icon} ${s.name}</span>`;
+            const click = isEditorUser() ? `onclick="changeStage('${s.id}')"` : '';
+            return `<span class="stage-pill ${cls}" ${click} style="${!isEditorUser() ? 'cursor:default;' : ''}">${s.icon} ${s.name}</span>`;
           }).join('')}
         </div>
       </div>
@@ -1566,9 +1580,9 @@ function renderTimelineTab(c, plant) {
         <div class="smart-prompt" id="smart-prompt">
           <div class="smart-prompt-icon">💡</div>
           <div class="smart-prompt-text">${escapeHtml(prompt.msg)}</div>
-          <button class="smart-prompt-dismiss" onclick="dismissPrompt('${escapeHtml(prompt.dismissKey)}')">&times;</button>
+          ${isEditorUser() ? `<button class="smart-prompt-dismiss" onclick="dismissPrompt('${escapeHtml(prompt.dismissKey)}')">&times;</button>` : ''}
         </div>` : ''}
-      <div class="compose" id="compose-box">
+      ${isEditorUser() ? `<div class="compose" id="compose-box">
         <textarea id="compose-text" placeholder="What's happening with your plant today?" rows="2" oninput="autoResizeTextarea(this)"></textarea>
         <div id="compose-preview" style="display:none" class="compose-preview"></div>
         <div class="compose-actions">
@@ -1578,7 +1592,7 @@ function renderTimelineTab(c, plant) {
           </label>
           <button class="btn btn-primary btn-sm" onclick="submitEntry()">Post</button>
         </div>
-      </div>
+      </div>` : ''}
       ${timeline.length === 0 ? `
         <div class="empty-state" style="padding:24px"><p>Your timeline is empty. Add your first entry above — snap a photo, write a note, or both.</p></div>
       ` : `
@@ -1604,7 +1618,7 @@ function renderTimelineTab(c, plant) {
                     <span class="tl-time">${formatRelative(e.timestamp)} · ${formatDate(e.timestamp)}</span>
                     <div style="display:flex; align-items:center; gap:6px">
                       <span class="tl-stage-badge">${STAGES[stageIndex(e.stage)]?.icon || ''} ${STAGES[stageIndex(e.stage)]?.name || ''}</span>
-                      <button class="tl-delete" onclick="deleteEntry('${e.id}')" title="Delete">&times;</button>
+                      ${isEditorUser() ? `<button class="tl-delete" onclick="deleteEntry('${e.id}')" title="Delete">&times;</button>` : ''}
                     </div>
                   </div>
                   ${hasText ? `<div class="tl-text">${escapeHtml(e.text)}</div>` : ''}
@@ -1749,7 +1763,7 @@ function renderAdviceTab(c, plant) {
       <div style="font-size:16px; font-weight:700; color:var(--accent); margin-bottom:14px">🎯 Stage Milestones</div>
       ${advice.milestones.map(m => {
         const done = plant.milestones?.includes(m);
-        return `<div class="milestone-item ${done ? 'done' : ''}" onclick="toggleMilestone('${m.replace(/'/g, "\\'")}')">
+        return `<div class="milestone-item ${done ? 'done' : ''}" ${isEditorUser() ? `onclick="toggleMilestone('${m.replace(/'/g, "\\'")}')"` : 'style="cursor:default"'}>
           <div class="milestone-check">${done ? '✓' : ''}</div>
           <div class="milestone-label">${escapeHtml(m)}</div>
         </div>`;

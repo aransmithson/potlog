@@ -1,8 +1,9 @@
-import { requireAuth, json } from '../../../../../../_shared/auth.js';
+import { requireAuth, isEditor, json } from '../../../../../../_shared/auth.js';
 
 export async function onRequestDelete({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
 
   // Verify ownership chain
   const g = await env.DB.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')

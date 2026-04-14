@@ -39,7 +39,8 @@ export async function onRequestPost({ request, env }) {
           display_name: user.display_name,
           avatar_emoji: user.avatar_emoji,
           bio: user.bio,
-          settings: user.settings
+          settings: user.settings,
+          role: user.role || 'editor'
         }
       },
       200,

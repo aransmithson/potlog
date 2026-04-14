@@ -39,9 +39,14 @@ export async function requireAuth(request, db) {
   ).bind(token, Date.now()).first();
   if (!session) return null;
   const user = await db.prepare(
-    'SELECT id, username, email, display_name, avatar_emoji, bio, settings FROM users WHERE id = ?'
+    'SELECT id, username, email, display_name, avatar_emoji, bio, settings, role FROM users WHERE id = ?'
   ).bind(session.user_id).first();
   return user || null;
+}
+
+export function isEditor(user) {
+  // Default to editor for legacy accounts that may not have a role set
+  return user && (user.role === 'editor' || !user.role);
 }
 
 export function json(data, status = 200, extraHeaders = {}) {

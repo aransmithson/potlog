@@ -1,4 +1,4 @@
-import { requireAuth, json, genId } from '../../../../../../_shared/auth.js';
+import { requireAuth, isEditor, json, genId } from '../../../../../../_shared/auth.js';
 
 async function ownsPlant(db, userId, growId, plantId) {
   const g = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
@@ -21,6 +21,7 @@ function base64ToBytes(dataUri) {
 export async function onRequestPost({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
   if (!await ownsPlant(env.DB, user.id, params.id, params.plantId))
     return json({ error: 'Not found' }, 404);
 

@@ -1,4 +1,4 @@
-import { requireAuth, json, deleteR2Photos, getPlantsList, sanitise, isValidMedium, isValidEnvironment, LIMITS } from '../../_shared/auth.js';
+import { requireAuth, isEditor, json, deleteR2Photos, getPlantsList, sanitise, isValidMedium, isValidEnvironment, LIMITS } from '../../_shared/auth.js';
 
 async function ownsGrow(db, userId, growId) {
   const g = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
@@ -14,9 +14,12 @@ export async function onRequestGet({ request, env, params }) {
   const plants = await getPlantsList(env.DB, params.id);
   if (plants === null) return json({ error: 'Not found' }, 404);
 
-  // Also return grow metadata
-  const grow = await env.DB.prepare('SELECT * FROM grows WHERE id = ? AND user_id = ?')
-    .bind(params.id, user.id).first();
+  // Viewers can see any grow; editors only see their own
+  const grow = isEditor(user)
+    ? await env.DB.prepare('SELECT * FROM grows WHERE id = ? AND user_id = ?').bind(params.id, user.id).first()
+    : await env.DB.prepare('SELECT * FROM grows WHERE id = ?').bind(params.id).first();
+
+  if (!grow) return json({ error: 'Not found' }, 404);
 
   return json({
     grow: {
@@ -35,6 +38,7 @@ export async function onRequestGet({ request, env, params }) {
 export async function onRequestPut({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
   if (!await ownsGrow(env.DB, user.id, params.id))
     return json({ error: 'Not found' }, 404);
 
@@ -74,6 +78,7 @@ export async function onRequestPut({ request, env, params }) {
 export async function onRequestDelete({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
+  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
   if (!await ownsGrow(env.DB, user.id, params.id))
     return json({ error: 'Not found' }, 404);
 
