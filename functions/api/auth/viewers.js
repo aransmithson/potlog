@@ -28,8 +28,8 @@ export async function onRequestPost({ request, env }) {
   if (clean.length < 2 || clean.length > LIMITS.username)
     return json({ error: 'Username must be 2-30 characters (letters, numbers, underscores)' }, 400);
 
-  if (!password || typeof password !== 'string' || password.length < 4)
-    return json({ error: 'Password must be at least 4 characters' }, 400);
+  if (!password || typeof password !== 'string' || password.length < 8)
+    return json({ error: 'Password must be at least 8 characters' }, 400);
 
   if (password.length > LIMITS.password)
     return json({ error: 'Password is too long' }, 400);

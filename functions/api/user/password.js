@@ -8,6 +8,9 @@ export async function onRequestPost({ request, env }) {
   if (!currentPassword || !newPassword)
     return json({ error: 'Current and new password are required' }, 400);
 
+  if (typeof currentPassword !== 'string' || currentPassword.length > LIMITS.password)
+    return json({ error: 'Invalid password' }, 400);
+
   if (typeof newPassword !== 'string' || newPassword.length < 8)
     return json({ error: 'New password must be at least 8 characters' }, 400);
 

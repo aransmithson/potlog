@@ -1,10 +1,8 @@
 import { hashPassword, genId, json, sessionCookie, isValidEmail, isValidUsername, LIMITS } from '../../_shared/auth.js';
 
-const VALID_ROLES = ['editor', 'viewer'];
-
 export async function onRequestPost({ request, env }) {
   try {
-    const { username, email, password, role } = await request.json();
+    const { username, email, password } = await request.json();
 
     if (!username || !email || !password)
       return json({ error: 'Username, email and password are required' }, 400);
@@ -21,7 +19,8 @@ export async function onRequestPost({ request, env }) {
     if (password.length > LIMITS.password)
       return json({ error: 'Password is too long' }, 400);
 
-    const userRole = VALID_ROLES.includes(role) ? role : 'editor';
+    // Role is always 'editor' for self-registration; use the viewers API to create viewer accounts.
+    const userRole = 'editor';
 
     // Check existing
     const existing = await env.DB.prepare(

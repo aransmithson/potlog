@@ -94,6 +94,7 @@ export async function onRequestDelete({ request, env, params }) {
   }
 
   await env.DB.prepare('DELETE FROM plants WHERE grow_id = ?').bind(params.id).run();
+  await env.DB.prepare('DELETE FROM grow_notes WHERE grow_id = ?').bind(params.id).run();
   await env.DB.prepare('DELETE FROM grows WHERE id = ?').bind(params.id).run();
 
   return json({ ok: true });

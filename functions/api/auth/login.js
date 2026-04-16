@@ -1,4 +1,4 @@
-import { hashPassword, genId, json, sessionCookie, isValidEmail, LIMITS } from '../../_shared/auth.js';
+import { hashPassword, genId, json, sessionCookie, isValidEmail, LIMITS, checkLoginRateLimit, recordLoginFailure, clearLoginAttempts } from '../../_shared/auth.js';
 
 export async function onRequestPost({ request, env }) {
   try {
@@ -12,15 +12,31 @@ export async function onRequestPost({ request, env }) {
     if (typeof password !== 'string' || password.length > LIMITS.password)
       return json({ error: 'Invalid credentials' }, 401);
 
+    const normEmail = email.toLowerCase();
+    const ip = request.headers.get('CF-Connecting-IP') || '';
+
+    // Rate limit: block after 10 failures within a 15-minute sliding window
+    if (await checkLoginRateLimit(env.DB, normEmail)) {
+      return json({ error: 'Too many failed login attempts. Please try again in 15 minutes.' }, 429);
+    }
+
     const user = await env.DB.prepare(
       'SELECT * FROM users WHERE email = ?'
-    ).bind(email.toLowerCase()).first();
+    ).bind(normEmail).first();
 
-    if (!user) return json({ error: 'Invalid email or password' }, 401);
+    if (!user) {
+      await recordLoginFailure(env.DB, normEmail, ip);
+      return json({ error: 'Invalid email or password' }, 401);
+    }
 
     const hash = await hashPassword(password, user.salt);
-    if (hash !== user.password_hash)
+    if (hash !== user.password_hash) {
+      await recordLoginFailure(env.DB, normEmail, ip);
       return json({ error: 'Invalid email or password' }, 401);
+    }
+
+    // Successful login — clear the failure counter
+    await clearLoginAttempts(env.DB, normEmail);
 
     const sessionId = genId() + genId();
     const now = Date.now();

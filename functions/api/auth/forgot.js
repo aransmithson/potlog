@@ -87,7 +87,7 @@ export async function onRequestPost({ request, env }) {
         // Don't expose email sending failures to the user
       }
     } else {
-      console.warn('RESEND_API_KEY not set — password reset email not sent. Token:', rawToken);
+      console.warn('RESEND_API_KEY not set — password reset email not sent.');
     }
 
     return json(successMsg);

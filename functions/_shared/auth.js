@@ -45,8 +45,9 @@ export async function requireAuth(request, db) {
 }
 
 export function isEditor(user) {
-  // Default to editor for legacy accounts that may not have a role set
-  return user && (user.role === 'editor' || !user.role);
+  // Only explicitly-assigned editors get write access.
+  // Lower privilege is the safe default — legacy accounts without a role are treated as viewers.
+  return user && user.role === 'editor';
 }
 
 export function json(data, status = 200, extraHeaders = {}) {
@@ -74,7 +75,10 @@ export const LIMITS = {
   displayName:  50,
   username:     30,
   password:    200,
+  milestones: 8000, // max JSON byte length for milestones / dismissedPrompts arrays
 };
+
+export const VALID_STAGES = ['germination', 'seedling', 'vegetative', 'flowering', 'harvest'];
 
 export function isValidEmail(email) {
   if (typeof email !== 'string') return false;
@@ -102,6 +106,34 @@ export function isValidEnvironment(environment) {
   return VALID_ENVIRONMENTS.includes(environment);
 }
 
+// ---------------------------------------------------------------------------
+// Login rate limiting — D1-backed, per email address, 15-minute sliding window
+// Run the add_login_attempts migration before deploying.
+// ---------------------------------------------------------------------------
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+export async function checkLoginRateLimit(db, email) {
+  const since = Date.now() - RATE_LIMIT_WINDOW_MS;
+  const row = await db.prepare(
+    'SELECT COUNT(*) as cnt FROM login_attempts WHERE identifier = ? AND created_at > ?'
+  ).bind(email, since).first();
+  return row && row.cnt >= RATE_LIMIT_MAX;
+}
+
+export async function recordLoginFailure(db, email, ip) {
+  await db.prepare(
+    'INSERT INTO login_attempts (id, identifier, ip, created_at) VALUES (?, ?, ?, ?)'
+  ).bind(genId(), email, ip || '', Date.now()).run();
+}
+
+export async function clearLoginAttempts(db, email) {
+  await db.prepare('DELETE FROM login_attempts WHERE identifier = ?').bind(email).run();
+}
+
+// ---------------------------------------------------------------------------
+// Data helpers
+// ---------------------------------------------------------------------------
 export async function getGrowsList(db, userId) {
   const growsResult = await db.prepare(
     'SELECT * FROM grows WHERE user_id = ? ORDER BY created_at DESC'
