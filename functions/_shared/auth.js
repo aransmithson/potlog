@@ -50,6 +50,34 @@ export function isEditor(user) {
   return user && user.role === 'editor';
 }
 
+// Check if user has edit permission on a specific grow
+export async function canEditGrow(db, userId, growId) {
+  // First check if they own the grow
+  const ownerCheck = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
+    .bind(growId, userId).first();
+  if (ownerCheck) return true;
+  
+  // Then check if they have explicit edit permission via sharing
+  const permCheck = await db.prepare(
+    "SELECT id FROM grow_permissions WHERE grow_id = ? AND user_id = ? AND permission = 'edit'"
+  ).bind(growId, userId).first();
+  return !!permCheck;
+}
+
+// Check if user has view permission on a specific grow
+export async function canViewGrow(db, userId, growId) {
+  // First check if they own the grow
+  const ownerCheck = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
+    .bind(growId, userId).first();
+  if (ownerCheck) return true;
+  
+  // Then check if they have any permission via sharing
+  const permCheck = await db.prepare(
+    "SELECT id FROM grow_permissions WHERE grow_id = ? AND user_id = ? AND permission IN ('view', 'edit')"
+  ).bind(growId, userId).first();
+  return !!permCheck;
+}
+
 export function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -135,11 +163,37 @@ export async function clearLoginAttempts(db, email) {
 // Data helpers
 // ---------------------------------------------------------------------------
 export async function getGrowsList(db, userId) {
-  const growsResult = await db.prepare(
+  // Get grows the user owns directly
+  const ownedResult = await db.prepare(
     'SELECT * FROM grows WHERE user_id = ? ORDER BY created_at DESC'
   ).bind(userId).all();
+  
+  // Get grows shared with this user via permissions
+  const sharedResult = await db.prepare(`
+    SELECT g.* FROM grows g
+    INNER JOIN grow_permissions gp ON g.id = gp.grow_id
+    WHERE gp.user_id = ? AND gp.permission IN ('view', 'edit')
+    ORDER BY g.created_at DESC
+  `).bind(userId).all();
+  
+  // Combine and deduplicate (owned takes precedence)
+  const growMap = new Map();
+  
+  for (const g of ownedResult.results) {
+    growMap.set(g.id, { ...g, _permission: 'owner' });
+  }
+  
+  for (const g of sharedResult.results) {
+    if (!growMap.has(g.id)) {
+      const permRow = await db.prepare(
+        'SELECT permission FROM grow_permissions WHERE grow_id = ? AND user_id = ?'
+      ).bind(g.id, userId).first();
+      growMap.set(g.id, { ...g, _permission: permRow?.permission || 'view' });
+    }
+  }
+  
   const grows = [];
-  for (const g of growsResult.results) {
+  for (const g of growMap.values()) {
     const plantRow = await db.prepare('SELECT COUNT(*) as cnt FROM plants WHERE grow_id = ?').bind(g.id).first();
     const noteRow = await db.prepare('SELECT COUNT(*) as cnt FROM notes n INNER JOIN plants p ON p.id = n.plant_id WHERE p.grow_id = ?').bind(g.id).first();
     const growNoteRow = await db.prepare('SELECT COUNT(*) as cnt FROM grow_notes WHERE grow_id = ?').bind(g.id).first();
@@ -151,6 +205,7 @@ export async function getGrowsList(db, userId) {
       plantCount: plantRow ? plantRow.cnt : 0,
       noteCount: (noteRow ? noteRow.cnt : 0) + (growNoteRow ? growNoteRow.cnt : 0),
       photoCount: photoRow ? photoRow.cnt : 0,
+      permission: g._permission,
     });
   }
   return grows;
@@ -194,11 +249,37 @@ export async function deleteR2Photos(r2, keys) {
 }
 
 export async function getFullGrows(db, userId) {
-  const growsResult = await db.prepare(
+  // Get grows the user owns directly
+  const ownedResult = await db.prepare(
     'SELECT * FROM grows WHERE user_id = ? ORDER BY created_at DESC'
   ).bind(userId).all();
+  
+  // Get grows shared with this user via permissions
+  const sharedResult = await db.prepare(`
+    SELECT g.* FROM grows g
+    INNER JOIN grow_permissions gp ON g.id = gp.grow_id
+    WHERE gp.user_id = ? AND gp.permission IN ('view', 'edit')
+    ORDER BY g.created_at DESC
+  `).bind(userId).all();
+  
+  // Combine and deduplicate (owned takes precedence)
+  const growMap = new Map();
+  
+  for (const g of ownedResult.results) {
+    growMap.set(g.id, { ...g, _permission: 'owner' });
+  }
+  
+  for (const g of sharedResult.results) {
+    if (!growMap.has(g.id)) {
+      const permRow = await db.prepare(
+        'SELECT permission FROM grow_permissions WHERE grow_id = ? AND user_id = ?'
+      ).bind(g.id, userId).first();
+      growMap.set(g.id, { ...g, _permission: permRow?.permission || 'view' });
+    }
+  }
+  
   const grows = [];
-  for (const g of growsResult.results) {
+  for (const g of growMap.values()) {
     const plantsResult = await db.prepare('SELECT * FROM plants WHERE grow_id = ? ORDER BY created_at ASC').bind(g.id).all();
     const plants = [];
     for (const p of plantsResult.results) {
@@ -220,6 +301,7 @@ export async function getFullGrows(db, userId) {
       id: g.id, name: g.name, strain: g.strain || '',
       medium: g.medium, environment: g.environment,
       completed: !!g.completed, createdAt: g.created_at,
+      permission: g._permission,
       plants,
       notes: growNotesResult.results.map(n => ({
         id: n.id, text: n.text || '', photo: photoUrl(n.photo), timestamp: n.timestamp
