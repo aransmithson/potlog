@@ -854,71 +854,6 @@ input, textarea, select { font-family:inherit; }
   <img id="lightbox-img" src="" alt="">
 </div>
 
-<!-- ===== KUSHY DEBUG MODAL ===== -->
-<button id="kushy-debug-btn" onclick="openKushyDebug()" title="Strain API Debug" style="
-  position:fixed; bottom:80px; right:16px; z-index:9999;
-  width:40px; height:40px; border-radius:50%;
-  background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.35);
-  color:var(--accent); font-size:18px; display:flex; align-items:center; justify-content:center;
-  box-shadow:0 2px 12px rgba(0,0,0,0.4); cursor:pointer;
-">🐛</button>
-
-<div id="kushy-debug-modal" class="modal-overlay" style="display:none; align-items:flex-end; padding:0;">
-  <div style="
-    background:var(--bg2); border:1px solid var(--border-bright); border-radius:var(--radius-xl) var(--radius-xl) 0 0;
-    width:100%; max-width:600px; margin:0 auto; padding:24px 20px 32px;
-    max-height:80vh; overflow-y:auto; box-shadow:0 -8px 40px rgba(0,0,0,0.5);
-  ">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
-      <div style="font-size:16px; font-weight:700; color:var(--accent)">🐛 Strain API Debug</div>
-      <button onclick="closeKushyDebug()" style="background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1">&times;</button>
-    </div>
-
-    <!-- Strain list status -->
-    <div id="kushy-list-status" style="
-      font-size:12px; padding:8px 12px; border-radius:var(--radius-sm);
-      background:var(--bg3); border:1px solid var(--border); margin-bottom:14px;
-    ">⏳ Strain list not yet loaded</div>
-
-    <!-- Tab bar -->
-    <div style="display:flex; gap:4px; margin-bottom:12px">
-      <button class="btn btn-secondary btn-sm" onclick="kushyDebugTab('search')" id="kdt-search" style="opacity:1">🔍 API Search</button>
-      <button class="btn btn-secondary btn-sm" onclick="kushyDebugTab('local')"  id="kdt-local"  style="opacity:0.5">📋 Local Filter</button>
-    </div>
-
-    <!-- API Search panel -->
-    <div id="kdp-search">
-      <div style="display:flex; gap:8px; margin-bottom:8px">
-        <input id="kushy-debug-input" placeholder="Type a strain name…" autocomplete="off"
-          style="flex:1; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:14px;"
-          onkeydown="if(event.key==='Enter') runKushyDebug()">
-        <button class="btn btn-primary btn-sm" onclick="runKushyDebug()" style="white-space:nowrap">Search</button>
-      </div>
-      <div id="kushy-debug-status" style="font-size:12px; color:var(--text3); margin-bottom:8px; min-height:18px"></div>
-      <pre id="kushy-debug-output" style="
-        background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
-        padding:14px; font-size:12px; color:var(--mint); overflow-x:auto; white-space:pre-wrap;
-        word-break:break-all; min-height:80px; max-height:300px; overflow-y:auto;
-      ">Results will appear here…</pre>
-    </div>
-
-    <!-- Local filter panel -->
-    <div id="kdp-local" style="display:none">
-      <div style="display:flex; gap:8px; margin-bottom:8px">
-        <input id="kushy-local-input" placeholder="Filter loaded strains…" autocomplete="off"
-          style="flex:1; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:14px;"
-          oninput="runKushyLocalFilter()">
-      </div>
-      <div id="kushy-local-status" style="font-size:12px; color:var(--text3); margin-bottom:8px; min-height:18px"></div>
-      <pre id="kushy-local-output" style="
-        background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
-        padding:14px; font-size:12px; color:var(--mint); overflow-x:auto; white-space:pre-wrap;
-        word-break:break-all; min-height:80px; max-height:300px; overflow-y:auto;
-      ">Start typing to filter…</pre>
-    </div>
-  </div>
-</div>
-
 <!-- ===== DELETE CONFIRM MODAL ===== -->
 <div id="delete-modal" class="modal-overlay" style="display:none">
   <div class="confirm-modal">
@@ -2156,7 +2091,7 @@ function showInputModal(title, msg, label, onConfirm) {
 function closeInputModal() { document.getElementById('input-modal').style.display = 'none'; }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeLightbox(); closeDeleteModal(); closeInputModal(); closeKushyDebug(); }
+  if (e.key === 'Escape') { closeLightbox(); closeDeleteModal(); closeInputModal(); }
 });
 
 // Enter key on auth forms
@@ -2185,13 +2120,11 @@ async function loadStrainList() {
   const MAX_PAGES = 10; // up to 1000 strains
   let page = 1;
   let all = [];
-  console.log('[Kushy] Loading strain list…');
   try {
     while (page <= MAX_PAGES) {
       const res = await fetch(`${KUSHY_BASE}/strains?limit=${PAGE_SIZE}&page=${page}`, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) { console.warn('[Kushy] Non-OK response on page', page, res.status); break; }
+      if (!res.ok) break;
       const json = await res.json();
-      console.log(`[Kushy] page ${page} raw:`, json);
       const data = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
       if (!data.length) break;
       all = all.concat(data);
@@ -2200,9 +2133,8 @@ async function loadStrainList() {
     }
     _strainList = all;
     _strainListReady = true;
-    console.log(`[Kushy] Strain list ready — ${_strainList.length} strains loaded across ${page} page(s)`);
   } catch (err) {
-    console.warn('[Kushy] Failed to load strain list:', err);
+    // Strain list unavailable; app will fall back to API search
   }
 }
 
@@ -2247,11 +2179,9 @@ async function kushySearch(query) {
     if (!res.ok) return [];
     const json = await res.json();
     const results = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
-    console.log('[Kushy] search raw response:', json);
-    console.log('[Kushy] search results:', results);
     _kushyCache[key] = results;
     return results;
-  } catch (err) { console.error('[Kushy] search error:', err); return []; }
+  } catch (err) { return []; }
 }
 
 async function kushyGetStrain(slug) {
@@ -2263,11 +2193,9 @@ async function kushyGetStrain(slug) {
     if (!res.ok) return null;
     const json = await res.json();
     const strain = json.data && !Array.isArray(json.data) ? json.data : (json.data?.[0] || null);
-    console.log('[Kushy] getStrain raw response:', json);
-    console.log('[Kushy] getStrain result:', strain);
     if (strain) _kushyCache[key] = strain;
     return strain;
-  } catch (err) { console.error('[Kushy] getStrain error:', err); return null; }
+  } catch (err) { return null; }
 }
 
 async function kushyFindByName(name) {
@@ -2397,74 +2325,6 @@ async function renderStrainTab(c, plant, grow) {
     </div>
     <p style="font-size:11px;color:var(--text4);text-align:center;margin-top:4px">Strain data from <a href="https://github.com/Piyush-Bhor/The_Cannabis_API" target="_blank" style="color:var(--text3)">The Cannabis API</a></p>
   </div>`;
-}
-
-// ============ KUSHY DEBUG ============
-function openKushyDebug() {
-  document.getElementById('kushy-debug-modal').style.display = 'flex';
-  refreshKushyListStatus();
-  setTimeout(() => document.getElementById('kushy-debug-input')?.focus(), 50);
-}
-function closeKushyDebug() {
-  document.getElementById('kushy-debug-modal').style.display = 'none';
-}
-function refreshKushyListStatus() {
-  const el = document.getElementById('kushy-list-status');
-  if (!el) return;
-  if (_strainListReady) {
-    el.style.background = 'rgba(52,211,153,0.08)';
-    el.style.borderColor = 'rgba(52,211,153,0.25)';
-    el.style.color = 'var(--accent)';
-    el.textContent = `✅ Strain list loaded — ${_strainList.length} strains ready for local search`;
-  } else {
-    el.style.background = 'var(--bg3)';
-    el.style.borderColor = 'var(--border)';
-    el.style.color = 'var(--text3)';
-    el.textContent = '⏳ Strain list still loading… (will fall back to API search in the meantime)';
-  }
-}
-function kushyDebugTab(tab) {
-  document.getElementById('kdp-search').style.display = tab === 'search' ? '' : 'none';
-  document.getElementById('kdp-local').style.display  = tab === 'local'  ? '' : 'none';
-  document.getElementById('kdt-search').style.opacity = tab === 'search' ? '1' : '0.5';
-  document.getElementById('kdt-local').style.opacity  = tab === 'local'  ? '1' : '0.5';
-  refreshKushyListStatus();
-}
-function runKushyLocalFilter() {
-  const q = document.getElementById('kushy-local-input').value.trim();
-  const status = document.getElementById('kushy-local-status');
-  const out = document.getElementById('kushy-local-output');
-  if (!_strainListReady) { status.textContent = '⏳ List not loaded yet.'; out.textContent = ''; return; }
-  if (q.length < 2) { status.textContent = `${_strainList.length} strains loaded. Type 2+ chars to filter.`; out.textContent = ''; return; }
-  const results = searchStrainList(q);
-  status.textContent = `${results.length} match${results.length !== 1 ? 'es' : ''} (showing up to 8 of ${_strainList.filter(s => s.name?.toLowerCase().includes(q.toLowerCase())).length} total)`;
-  out.textContent = results.length ? JSON.stringify(results, null, 2) : 'No matches.';
-}
-async function runKushyDebug() {
-  const q = document.getElementById('kushy-debug-input').value.trim();
-  const status = document.getElementById('kushy-debug-status');
-  const out = document.getElementById('kushy-debug-output');
-  if (!q) { status.textContent = '⚠ Enter a strain name first.'; return; }
-
-  status.textContent = `⏳ Fetching /api/kushy/strains?search=${encodeURIComponent(q)}&limit=8 …`;
-  out.textContent = '…';
-
-  const url = `/api/kushy/strains?search=${encodeURIComponent(q)}&limit=8`;
-  try {
-    const res = await fetch(url);
-    status.textContent = `✅ HTTP ${res.status} ${res.statusText}  ·  ${url}`;
-    let text = await res.text();
-    try {
-      // Pretty-print if valid JSON
-      const parsed = JSON.parse(text);
-      out.textContent = JSON.stringify(parsed, null, 2);
-    } catch {
-      out.textContent = text;
-    }
-  } catch (err) {
-    status.textContent = `❌ Fetch error: ${err.message}`;
-    out.textContent = String(err);
-  }
 }
 
 // ============ PREMIUM INTERACTIONS ============
