@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 :root {
+  --theme-mode: dark;
   --bg: #060d0a;
   --bg2: #0d1912;
   --bg3: #152318;
@@ -46,6 +47,42 @@
   --glass: rgba(255, 255, 255, 0.025);
   --glass-border: rgba(255, 255, 255, 0.06);
 }
+[data-theme="light"] {
+  --theme-mode: light;
+  --bg: #f5f9f7;
+  --bg2: #ffffff;
+  --bg3: #e8f1ed;
+  --bg4: #d4e5db;
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-hover: rgba(232, 241, 237, 0.95);
+  --border: rgba(47, 133, 100, 0.15);
+  --border-bright: rgba(47, 133, 100, 0.35);
+  --border-gold: rgba(180, 140, 60, 0.25);
+  --accent: #2fb37d;
+  --accent-dim: #0d8a5e;
+  --accent-glow: rgba(47, 179, 125, 0.15);
+  --accent-glow-strong: rgba(47, 179, 125, 0.28);
+  --accent-dark: #a8dcc8;
+  --mint: #4a8c6e;
+  --gold: #b8892a;
+  --gold-light: #d4a845;
+  --gold-glow: rgba(184, 137, 42, 0.20);
+  --gold-glow-strong: rgba(184, 137, 42, 0.35);
+  --text: #1a2f26;
+  --text2: #2d5a47;
+  --text3: #5a8a72;
+  --text4: #9cbfad;
+  --danger: #dc2626;
+  --danger-bg: rgba(220, 38, 38, 0.08);
+  --warn: #d97706;
+  --warn-bg: rgba(217, 119, 6, 0.08);
+  --shadow: 0 12px 48px rgba(0,0,0,0.12);
+  --shadow-sm: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-gold: 0 8px 32px rgba(184,137,42,0.15);
+  --shadow-glow: 0 0 40px rgba(47,179,125,0.12);
+  --glass: rgba(0, 0, 0, 0.03);
+  --glass-border: rgba(0, 0, 0, 0.08);
+}
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -55,6 +92,14 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+[data-theme="light"] body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(47,179,125,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 80%, rgba(184,137,42,0.05) 0%, transparent 50%);
+}
+[data-theme="dark"] body {
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -10%, rgba(47,212,146,0.07) 0%, transparent 60%),
     radial-gradient(ellipse 60% 40% at 100% 80%, rgba(216,168,64,0.04) 0%, transparent 50%),
@@ -988,6 +1033,35 @@ let pendingPhoto = null;
 let selectedAvatar = null;
 let resetToken = null;
 
+// ============ THEME ============
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('potlog_theme');
+  if (saved) {
+    applyTheme(saved);
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  localStorage.setItem('potlog_theme', next);
+  
+  // Update button text if it exists
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) {
+    btn.textContent = next === 'light' ? '🌙 Dark' : '☀️ Light';
+  }
+}
+
 // ============ API ============
 async function api(method, path, body) {
   const opts = { method, headers: {} };
@@ -1869,6 +1943,19 @@ function renderSettings(app) {
       </div>
 
       <div class="card">
+        <div class="section-title">Appearance</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text2)">Theme Mode</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">Switch between light and dark themes</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="toggleTheme()" id="theme-toggle-btn">
+            ${document.documentElement.getAttribute('data-theme') === 'light' ? '🌙 Dark' : '☀️ Light'}
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="section-title">Data</div>
         <p style="font-size:13px; color:var(--text3); margin-bottom:14px">Download all your grows, plants, and notes as a JSON file.</p>
         <button class="btn btn-secondary" onclick="exportData()">⬇️ Export My Data</button>
@@ -2368,6 +2455,9 @@ render = function() {
 
 // ============ INIT ============
 async function init() {
+  // Initialize theme before showing any UI
+  initTheme();
+  
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'none';
 

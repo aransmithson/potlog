@@ -1,5 +1,6 @@
-import { requireAuth, isEditor, json, deleteR2Photos, getPlantsList, sanitise, isValidMedium, isValidEnvironment, LIMITS } from '../../_shared/auth.js';
+import { requireAuth, json, deleteR2Photos, getPlantsList, sanitise, isValidMedium, isValidEnvironment, LIMITS, canEditGrow } from '../../_shared/auth.js';
 
+// Check if user owns a grow
 async function ownsGrow(db, userId, growId) {
   const g = await db.prepare('SELECT id FROM grows WHERE id = ? AND user_id = ?')
     .bind(growId, userId).first();
@@ -11,15 +12,25 @@ export async function onRequestGet({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
 
+  // Check if user has permission to view this grow
+  const hasPermission = await ownsGrow(env.DB, user.id, params.id) || 
+    await canViewGrow(env.DB, user.id, params.id);
+  if (!hasPermission) return json({ error: 'Not found' }, 404);
+
   const plants = await getPlantsList(env.DB, params.id);
   if (plants === null) return json({ error: 'Not found' }, 404);
 
-  // Viewers can see any grow; editors only see their own
-  const grow = isEditor(user)
-    ? await env.DB.prepare('SELECT * FROM grows WHERE id = ? AND user_id = ?').bind(params.id, user.id).first()
-    : await env.DB.prepare('SELECT * FROM grows WHERE id = ?').bind(params.id).first();
-
+  const grow = await env.DB.prepare('SELECT * FROM grows WHERE id = ?').bind(params.id).first();
   if (!grow) return json({ error: 'Not found' }, 404);
+
+  // Determine user's permission level
+  let permission = 'owner';
+  if (!await ownsGrow(env.DB, user.id, params.id)) {
+    const permRow = await env.DB.prepare(
+      'SELECT permission FROM grow_permissions WHERE grow_id = ? AND user_id = ?'
+    ).bind(params.id, user.id).first();
+    permission = permRow?.permission || 'view';
+  }
 
   return json({
     grow: {
@@ -30,6 +41,7 @@ export async function onRequestGet({ request, env, params }) {
       environment: grow.environment,
       completed: !!grow.completed,
       createdAt: grow.created_at,
+      permission,
     },
     plants
   });
@@ -38,9 +50,10 @@ export async function onRequestGet({ request, env, params }) {
 export async function onRequestPut({ request, env, params }) {
   const user = await requireAuth(request, env.DB);
   if (!user) return json({ error: 'Unauthorized' }, 401);
-  if (!isEditor(user)) return json({ error: 'Forbidden: editor access required' }, 403);
-  if (!await ownsGrow(env.DB, user.id, params.id))
-    return json({ error: 'Not found' }, 404);
+  
+  // Check if user has edit permission (owner or shared with edit permission)
+  const canEdit = await canEditGrow(env.DB, user.id, params.id);
+  if (!canEdit) return json({ error: 'Forbidden: edit access required' }, 403);
 
   const body = await request.json();
   const sets = [];
