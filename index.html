@@ -816,6 +816,7 @@ input, textarea, select { font-family:inherit; }
 
       <!-- Register Form -->
       <div id="register-form" style="display:none">
+        <div class="auth-success" id="invite-banner" style="display:none; margin-bottom:14px"></div>
         <div class="form-group">
           <label>Username</label>
           <input type="text" id="reg-username" placeholder="growmaster42" autocomplete="username">
@@ -1032,6 +1033,7 @@ let currentView = 'home', currentGrowId = null, currentPlantId = null, currentPl
 let pendingPhoto = null;
 let selectedAvatar = null;
 let resetToken = null;
+let viewerInviteToken = null;
 
 // ============ THEME ============
 function applyTheme(theme) {
@@ -1244,9 +1246,12 @@ async function doRegister() {
   const btn = document.getElementById('register-btn');
   btn.disabled = true; btn.textContent = 'Creating account…';
   try {
-    const { user } = await api('POST', '/api/auth/register', { username, email, password, role: 'editor' });
+    const payload = { username, email, password };
+    if (viewerInviteToken) payload.inviteToken = viewerInviteToken;
+    const { user } = await api('POST', '/api/auth/register', payload);
     currentUser = user;
     data = { grows: [] };
+    await loadGrowsList();
     showApp();
   } catch (err) {
     showAuthError(err.message);
@@ -1355,13 +1360,17 @@ function renderHome(app) {
       <div class="card-grid">
         ${data.grows.map(g => {
           const age = daysSince(g.createdAt);
+          const isViewOnly = g.permission === 'view';
           return `<div class="card interactive" onclick="goGrow('${g.id}')">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px">
               <div style="min-width:0">
                 <div style="font-size:17px; font-weight:700">${escapeHtml(g.name)}</div>
                 <div style="font-size:13px; color:var(--text3); margin-top:3px">${escapeHtml(g.strain || 'Unknown strain')} · ${escapeHtml(g.medium)}</div>
               </div>
-              <span class="badge ${g.completed ? 'badge-done' : 'badge-active'}">${g.completed ? 'Done' : 'Active'}</span>
+              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end">
+                ${isViewOnly ? '<span class="badge" style="background:var(--bg4); color:var(--text2); border:1px solid var(--border)">👁️ View only</span>' : ''}
+                <span class="badge ${g.completed ? 'badge-done' : 'badge-active'}">${g.completed ? 'Done' : 'Active'}</span>
+              </div>
             </div>
             <div style="margin-top:14px; display:flex; gap:14px; font-size:12px; color:var(--text3); font-weight:500">
               <span>🌿 ${g.plantCount || 0} plant${(g.plantCount || 0) !== 1 ? 's' : ''}</span><span>📅 Day ${age}</span><span>${escapeHtml(g.environment)}</span>
@@ -1430,6 +1439,7 @@ function renderGrow(app) {
         </div>
         <div style="font-size:13px; color:var(--text3); margin-top:4px; display:flex; gap:10px; flex-wrap:wrap">
           <span>${escapeHtml(grow.strain || 'Unknown strain')}</span><span>·</span><span>${escapeHtml(grow.medium)}</span><span>·</span><span>${escapeHtml(grow.environment)}</span><span>·</span><span>Day ${age}</span>
+          ${grow.permission === 'view' ? '<span>·</span><span>👁️ View only</span>' : ''}
         </div>
         ${isEditorUser() ? `<div class="btn-group" style="margin-top:14px">
           <button class="btn btn-primary btn-sm" onclick="showAddPlantForm()">+ Add Plant</button>
@@ -1964,16 +1974,13 @@ function renderSettings(app) {
       ${isEditorUser() ? `
       <div class="card" id="viewers-card">
         <div class="section-title">👁️ Viewer Access</div>
-        <p style="font-size:13px; color:var(--text3); margin-bottom:16px">Create logins for people you want to share your grows with. Viewers can browse everything but cannot make any changes.</p>
+        <p style="font-size:13px; color:var(--text3); margin-bottom:16px">Invite viewers by email. They’ll receive a registration link. Existing accounts can just sign in.</p>
         <div id="viewers-list" style="margin-bottom:16px"><div style="font-size:13px; color:var(--text3)">Loading…</div></div>
         <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:4px">
           <div style="font-size:14px; font-weight:600; margin-bottom:12px; color:var(--text2)">Add Viewer</div>
           <div id="viewer-form-error" class="auth-error"></div>
-          <div class="form-row">
-            <div class="form-group"><label>Username</label><input type="text" id="new-viewer-username" placeholder="e.g. jane_view" autocomplete="off"></div>
-            <div class="form-group"><label>Password</label><input type="password" id="new-viewer-password" placeholder="Min 4 chars" autocomplete="new-password"></div>
-          </div>
-          <button class="btn btn-secondary" id="add-viewer-btn" onclick="addViewer()">+ Add Viewer</button>
+          <div class="form-group"><label>Email</label><input type="email" id="new-viewer-email" placeholder="viewer@example.com" autocomplete="email"></div>
+          <button class="btn btn-secondary" id="add-viewer-btn" onclick="addViewer()">+ Send Invite</button>
         </div>
       </div>
       ` : ''}
@@ -2062,10 +2069,11 @@ async function loadViewers() {
     el.innerHTML = viewers.map(v => `
       <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
         <div>
-          <div style="font-size:14px; font-weight:600; color:var(--text)">@${escapeHtml(v.username)}</div>
+          <div style="font-size:14px; font-weight:600; color:var(--text)">${escapeHtml(v.display_name || v.username || v.email)}</div>
+          <div style="font-size:12px; color:var(--text3); margin-top:2px">${escapeHtml(v.email || '')}</div>
           <div style="font-size:12px; color:var(--text3); margin-top:2px">Viewer · Added ${formatRelative(v.created_at)}</div>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="removeViewer('${v.id}', '${escapeHtml(v.username)}')">Remove</button>
+        <button class="btn btn-danger btn-sm" onclick="removeViewer('${v.id}', '${escapeHtml(v.email || v.username || 'viewer')}')">Remove</button>
       </div>
     `).join('');
   } catch (err) {
@@ -2074,39 +2082,37 @@ async function loadViewers() {
 }
 
 async function addViewer() {
-  const username = document.getElementById('new-viewer-username').value.trim();
-  const password = document.getElementById('new-viewer-password').value;
+  const email = document.getElementById('new-viewer-email').value.trim();
   const errEl = document.getElementById('viewer-form-error');
   errEl.style.display = 'none';
 
-  if (!username || !password) {
-    errEl.textContent = 'Please fill in both username and password.';
+  if (!email) {
+    errEl.textContent = 'Please enter an email address.';
     errEl.style.display = 'block'; return;
   }
   const btn = document.getElementById('add-viewer-btn');
-  btn.disabled = true; btn.textContent = 'Adding…';
+  btn.disabled = true; btn.textContent = 'Sending…';
   try {
-    await api('POST', '/api/auth/viewers', { username, password });
-    document.getElementById('new-viewer-username').value = '';
-    document.getElementById('new-viewer-password').value = '';
-    showToast(`Viewer @${username} added!`, 'success');
+    await api('POST', '/api/auth/viewers', { email });
+    document.getElementById('new-viewer-email').value = '';
+    showToast(`Invite sent to ${email}`, 'success');
     await loadViewers();
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false; btn.textContent = '+ Add Viewer';
+    btn.disabled = false; btn.textContent = '+ Send Invite';
   }
 }
 
-async function removeViewer(id, username) {
+async function removeViewer(id, label) {
   showDeleteModal(
-    `Remove @${username}?`,
-    `This will delete the viewer account for @${username}. They will no longer be able to log in.`,
+    `Remove ${label}?`,
+    `This will delete the viewer account for ${label}. They will no longer be able to log in.`,
     async () => {
       try {
         await api('DELETE', `/api/auth/viewers/${id}`);
-        showToast(`@${username} removed.`, 'success');
+        showToast(`${label} removed.`, 'success');
         await loadViewers();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -2467,6 +2473,28 @@ async function init() {
   if (token) {
     resetToken = token;
     switchAuthTab('reset');
+    document.getElementById('auth-screen').style.display = '';
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return;
+  }
+
+  const invite = urlParams.get('invite');
+  if (invite) {
+    viewerInviteToken = invite;
+    try {
+      const inviteData = await api('GET', `/api/auth/viewer-invite?token=${encodeURIComponent(invite)}`);
+      const emailInput = document.getElementById('reg-email');
+      emailInput.value = inviteData.email;
+      emailInput.readOnly = true;
+      emailInput.style.opacity = '0.75';
+      const banner = document.getElementById('invite-banner');
+      banner.textContent = `You were invited as a viewer for ${inviteData.email}. Create your account to continue.`;
+      banner.style.display = 'block';
+      switchAuthTab('register');
+    } catch (err) {
+      showAuthError('This invite link is invalid or expired.');
+      switchAuthTab('login');
+    }
     document.getElementById('auth-screen').style.display = '';
     window.history.replaceState({}, document.title, window.location.pathname);
     return;
